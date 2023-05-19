@@ -15,8 +15,8 @@ from llmspec import (
 )
 
 logger = get_logger()
-TOKENIZER = os.environ.get("TOKENIZER", "THUDM/chatglm-6b-int4")
-MODEL = os.environ.get("MODEL", "THUDM/chatglm-6b-int4")
+TOKENIZER = os.environ.get("MODELZ_TOKENIZER", "THUDM/chatglm-6b-int4")
+MODEL = os.environ.get("MODELZ_MODEL", "THUDM/chatglm-6b-int4")
 
 
 class Tokenizer(Worker):
@@ -51,8 +51,8 @@ class Inference(Worker):
         inputs = torch.nn.utils.rnn.pad_sequence(tokens, batch_first=True).to(
             self.device
         )
-        outputs = self.model.generate(inputs, max_length=100).tolist()
-        return zip(tokens, outputs)
+        outputs = self.model.generate(inputs, max_length=30).tolist()
+        return list(zip(tokens, outputs))
 
 
 class Decoder(Worker):
@@ -86,7 +86,7 @@ class Decoder(Worker):
 
 if __name__ == "__main__":
     server = Server()
-    server.append_worker(Tokenizer, num=2, timeout=10)
+    server.append_worker(Tokenizer, num=1, timeout=10)
     server.append_worker(Inference, num=1, max_batch_size=4, timeout=40)
-    server.append_worker(Decoder, num=2, timeout=10)
+    server.append_worker(Decoder, num=1, timeout=10)
     server.run()
