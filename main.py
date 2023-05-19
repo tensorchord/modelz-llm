@@ -1,43 +1,32 @@
 import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import List
 
 import torch  # type: ignore
 from transformers import AutoTokenizer, AutoModel
-from mosec import Server, Worker, get_logger
 from llmspec import (
     ChatCompletionRequest,
+    PromptCompletionRequest,
     CompletionResponse,
     TokenUsage,
     ChatChoice,
     ChatMessage,
     Role,
 )
+import msgspec
+import falcon
+from falcon.asgi import Request, Response, App
 
-logger = get_logger()
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", "THUDM/chatglm-6b-int4")
 MODEL = os.environ.get("MODELZ_MODEL", "THUDM/chatglm-6b-int4")
 
 
-class Tokenizer(Worker):
-    def __init__(self):
+class LLM:
+    def __init__(self, model_name: str, tokenizer_name: str) -> None:
         self.tokenizer = AutoTokenizer.from_pretrained(
-            TOKENIZER, trust_remote_code=True
+            tokenizer_name, trust_remote_code=True
         )
-
-    def deserialize(self, buf: bytes) -> ChatCompletionRequest:
-        return ChatCompletionRequest.from_bytes(buf)
-
-    def forward(self, req: ChatCompletionRequest):
-        prompt = req.get_prompt(MODEL)
-        tokens = self.tokenizer(prompt, return_tensors="pt")
-        # TODO: ignore the inference configurations for now
-        return tokens.input_ids[0]
-
-
-class Inference(Worker):
-    def __init__(self):
-        self.model = AutoModel.from_pretrained(MODEL, trust_remote_code=True)
+        self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
@@ -47,46 +36,98 @@ class Inference(Worker):
             self.model = self.model.float()
         self.model.eval()
 
-    def forward(self, tokens: List[Any]) -> Dict:
-        inputs = torch.nn.utils.rnn.pad_sequence(tokens, batch_first=True).to(
-            self.device
-        )
-        outputs = self.model.generate(inputs, max_length=30).tolist()
-        return list(zip(tokens, outputs))
+    def encode(self, text: str):
+        tokens = self.tokenizer(text, return_tensors="pt")
+        return tokens.input_ids
+
+    def decode(self, token: List[int]):
+        text = self.tokenizer.decode(token, skip_special_tokens=True)
+        return text
+    
+    def generate(self, tokens, max_length=30):
+        inputs = tokens.to(self.device)
+        outputs = self.model.generate(inputs, max_length=max_length).tolist()
+        return outputs
 
 
-class Decoder(Worker):
-    def __init__(self):
-        self.tokenizer = AutoTokenizer.from_pretrained(
-            TOKENIZER, trust_remote_code=True
-        )
+llm = LLM(MODEL, TOKENIZER)
 
-    def forward(self, data: Any):
-        token, output = data
-        res = output[len(token) :]
-        msg = self.tokenizer.decode(res, skip_special_tokens=True)
-        resp = CompletionResponse(
-            id=MODEL,
+
+class Ping:
+    async def on_get(self, req: Request, resp: Response):
+        resp.content_type = falcon.MEDIA_TEXT
+        resp.text = "Modelz LLM service"
+
+
+class ChatCompletions:
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+
+    async def on_post(self, req: Request, resp: Response):
+        buf = await req.stream.readall()
+        try:
+            chat_req = ChatCompletionRequest.from_bytes(buf=buf)
+        except msgspec.ValidationError as err:
+            resp.status = falcon.HTTP_422
+            resp.media = {"error": err}
+
+        tokens = llm.encode(chat_req.get_prompt(self.model_name))
+        input_length = len(tokens[0])
+        outputs = llm.generate(tokens=tokens)[0]
+        res = outputs[input_length:]
+        msg = llm.decode(res)
+        completion = CompletionResponse(
+            id=self.model_name,
             object="chat",
             created=datetime.now(),
             choices=[
                 ChatChoice(message=ChatMessage(content=msg, role=Role.ASSISTANT)),
             ],
             usage=TokenUsage(
-                prompt_tokens=len(token),
+                prompt_tokens=input_length,
                 completion_tokens=len(res),
-                total_tokens=len(token) + len(res),
+                total_tokens=input_length + len(res),
             ),
         )
-        return resp
-
-    def serialize(self, data: CompletionResponse):
-        return data.to_json()
+        resp.data = completion.to_json()
 
 
-if __name__ == "__main__":
-    server = Server()
-    server.append_worker(Tokenizer, num=1, timeout=10)
-    server.append_worker(Inference, num=1, max_batch_size=4, timeout=40)
-    server.append_worker(Decoder, num=1, timeout=10)
-    server.run()
+class Completions:
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+
+    async def on_post(self, req: Request, resp: Response):
+        buf = await req.stream.readall()
+        try:
+            prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
+        except msgspec.ValidationError as err:
+            resp.status = falcon.HTTP_422
+            resp.media = {"error": err}
+
+        tokens = llm.encode(prompt_req.prompt)
+        input_length = len(tokens[0])
+        outputs = llm.generate(tokens=tokens)[0]
+        msg = llm.decode(outputs)
+        completion = CompletionResponse(
+            id=self.model_name,
+            object="chat",
+            created=datetime.now(),
+            choices=[
+                ChatChoice(
+                    message=ChatMessage(content=msg, role=Role.ASSISTANT),
+                    finish_reason="length",
+                ),
+            ],
+            usage=TokenUsage(
+                prompt_tokens=input_length,
+                completion_tokens=len(outputs),
+                total_tokens=input_length + len(outputs),
+            ),
+        )
+        resp.data = completion.to_json()
+
+
+app = App()
+app.add_route("/", Ping())
+app.add_route("/v1/completions", Completions(model_name=MODEL))
+app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
