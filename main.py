@@ -99,13 +99,35 @@ class Completions:
     async def on_post(self, req: Request, resp: Response):
         buf = await req.stream.readall()
         try:
-            prompt = PromptCompletionRequest.from_bytes(buf=buf)
+            prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
             resp.status = falcon.HTTP_422
             resp.media = {"error": err}
 
+        tokens = llm.encode(prompt_req.prompt)
+        input_length = len(tokens[0])
+        outputs = llm.generate(tokens=tokens)[0]
+        msg = llm.decode(outputs)
+        completion = CompletionResponse(
+            id=self.model_name,
+            object="chat",
+            created=datetime.now(),
+            choices=[
+                ChatChoice(
+                    message=ChatMessage(content=msg, role=Role.ASSISTANT),
+                    finish_reason="length",
+                ),
+            ],
+            usage=TokenUsage(
+                prompt_tokens=input_length,
+                completion_tokens=len(outputs),
+                total_tokens=input_length + len(outputs),
+            ),
+        )
+        resp.data = completion.to_json()
+
 
 app = App()
 app.add_route("/", Ping())
-app.add_route("/completions", Completions(model_name=MODEL))
-app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
+app.add_route("/v1/completions", Completions(model_name=MODEL))
+app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
