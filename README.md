@@ -11,7 +11,6 @@ Please first start the self-hosted API server by following the instructions:
 ```bash
 export MODELZ_MODEL="THUDM/chatglm-6b-int4"
 export MODELZ_TOKENIZER="THUDM/chatglm-6b-int4"
-export OPENAI_API_BASE="http://localhost:8080"
 
 python main.py
 ```
@@ -20,6 +19,8 @@ Then you can use the OpenAI python SDK to interact with the model:
 
 ```python
 import openai
+openai.api_base="http://localhost:8000/v1"
+
 # create a chat completion
 chat_completion = openai.ChatCompletion.create(model="self-hosted", messages=[{"role": "user", "content": "Hello world"}])
 ```
