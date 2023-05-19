@@ -7,3 +7,5 @@ sentencepiece
 cpm_kernels
 accelerate
 llmspec
+falcon
+uvicorn
