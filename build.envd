@@ -2,15 +2,29 @@
 
 
 def basic():
+    install.apt_packages(name=["build-essential"])
     install.cuda(version="11.6.2")
+    install.conda()
     install.python()
     install.python_packages(requirements="requirements.txt")
+
+
+def cpu_basic():
+    install.apt_packages(name=["build-essential"])
+    install.conda()
+    install.python()
+    install.python_packages(
+        name=[
+            "torch --extra-index-url https://download.pytorch.org/whl/cpu",
+            "transformers",
+        ]
+    )
 
 
 def build():
     base(dev=True)
     basic()
-    runtime.expose(envd_port=8000, host_port=8000, service="sd")
+    runtime.expose(envd_port=8000, host_port=8000, service="service")
 
 
 def serving():
