@@ -140,5 +140,9 @@ class Completions:
 
 app = App()
 app.add_route("/", Ping())
+app.add_route("/completions", Completions(model_name=MODEL))
+app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
+# refer to https://platform.openai.com/docs/api-reference/chat
+# make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
