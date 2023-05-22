@@ -8,9 +8,15 @@ import falcon
 import msgspec
 import torch  # type: ignore
 from falcon.asgi import App, Request, Response
-from llmspec import (ChatChoice, ChatCompletionRequest, ChatMessage,
-                     CompletionResponse, PromptCompletionRequest, Role,
-                     TokenUsage)
+from llmspec import (
+    ChatChoice,
+    ChatCompletionRequest,
+    ChatMessage,
+    CompletionResponse,
+    PromptCompletionRequest,
+    Role,
+    TokenUsage,
+)
 from transformers import AutoModel, AutoTokenizer
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
@@ -27,9 +33,7 @@ class LLM:
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name, trust_remote_code=True
         )
-        self.model = AutoModel.from_pretrained(
-            model_name, trust_remote_code=True
-        )
+        self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
@@ -134,5 +138,9 @@ class Completions:
 
 app = App()
 app.add_route("/", Ping())
+app.add_route("/completions", Completions(model_name=MODEL))
+app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
+# refer to https://platform.openai.com/docs/api-reference/chat
+# make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
