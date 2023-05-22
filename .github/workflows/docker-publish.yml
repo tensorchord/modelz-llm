@@ -20,7 +20,7 @@ concurrency:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: modelzai/mosec-stable-diffusion
+  IMAGE_NAME: modelzai/llm
 
 
 jobs:
