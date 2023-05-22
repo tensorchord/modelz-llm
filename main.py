@@ -1,24 +1,25 @@
+import logging
 import os
+import sys
 from datetime import datetime
 from typing import List
 
-import torch  # type: ignore
-from transformers import AutoTokenizer, AutoModel
-from llmspec import (
-    ChatCompletionRequest,
-    PromptCompletionRequest,
-    CompletionResponse,
-    TokenUsage,
-    ChatChoice,
-    ChatMessage,
-    Role,
-)
-import msgspec
 import falcon
-from falcon.asgi import Request, Response, App
+import msgspec
+import torch  # type: ignore
+from falcon.asgi import App, Request, Response
+from llmspec import (ChatChoice, ChatCompletionRequest, ChatMessage,
+                     CompletionResponse, PromptCompletionRequest, Role,
+                     TokenUsage)
+from transformers import AutoModel, AutoTokenizer
 
-TOKENIZER = os.environ.get("MODELZ_TOKENIZER", "THUDM/chatglm-6b-int4")
-MODEL = os.environ.get("MODELZ_MODEL", "THUDM/chatglm-6b-int4")
+DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
+TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
+MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
+
+
+formatter = "%(asctime)s - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
+logging.basicConfig(stream=sys.stdout, format=formatter, level=logging.INFO)
 
 
 class LLM:
@@ -26,7 +27,9 @@ class LLM:
         self.tokenizer = AutoTokenizer.from_pretrained(
             tokenizer_name, trust_remote_code=True
         )
-        self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        self.model = AutoModel.from_pretrained(
+            model_name, trust_remote_code=True
+        )
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
@@ -43,7 +46,7 @@ class LLM:
     def decode(self, token: List[int]):
         text = self.tokenizer.decode(token, skip_special_tokens=True)
         return text
-    
+
     def generate(self, tokens, max_length=30):
         inputs = tokens.to(self.device)
         outputs = self.model.generate(inputs, max_length=max_length).tolist()
@@ -70,6 +73,7 @@ class ChatCompletions:
         except msgspec.ValidationError as err:
             resp.status = falcon.HTTP_422
             resp.media = {"error": err}
+            return
 
         tokens = llm.encode(chat_req.get_prompt(self.model_name))
         input_length = len(tokens[0])
@@ -103,6 +107,7 @@ class Completions:
         except msgspec.ValidationError as err:
             resp.status = falcon.HTTP_422
             resp.media = {"error": err}
+            return
 
         tokens = llm.encode(prompt_req.prompt)
         input_length = len(tokens[0])

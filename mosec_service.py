@@ -1,18 +1,12 @@
 import os
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any, Dict, List
 
 import torch  # type: ignore
-from transformers import AutoTokenizer, AutoModel
+from llmspec import (ChatChoice, ChatCompletionRequest, ChatMessage,
+                     CompletionResponse, Role, TokenUsage)
 from mosec import Server, Worker, get_logger
-from llmspec import (
-    ChatCompletionRequest,
-    CompletionResponse,
-    TokenUsage,
-    ChatChoice,
-    ChatMessage,
-    Role,
-)
+from transformers import AutoModel, AutoTokenizer
 
 logger = get_logger()
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", "THUDM/chatglm-6b-int4")
