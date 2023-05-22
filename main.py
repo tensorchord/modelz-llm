@@ -16,8 +16,9 @@ from llmspec import (
     PromptCompletionRequest,
     Role,
     TokenUsage,
+    LanguageModels,
 )
-from transformers import AutoModel, AutoTokenizer
+import transformers
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
@@ -30,10 +31,11 @@ logging.basicConfig(stream=sys.stdout, format=formatter, level=logging.INFO)
 
 class LLM:
     def __init__(self, model_name: str, tokenizer_name: str) -> None:
-        self.tokenizer = AutoTokenizer.from_pretrained(
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             tokenizer_name, trust_remote_code=True
         )
-        self.model = AutoModel.from_pretrained(model_name, trust_remote_code=True)
+        model_cls = getattr(transformers, LanguageModels.transformer_cls(model_name))
+        self.model = model_cls.from_pretrained(model_name, trust_remote_code=True)
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
