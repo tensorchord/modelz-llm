@@ -20,7 +20,7 @@ concurrency:
 
 env:
   REGISTRY: us-central1-docker.pkg.dev/nth-guide-378813
-  IMAGE_NAME: modelzai/mosec-stable-diffusion
+  IMAGE_NAME: modelzai/llm
 
 
 jobs:
