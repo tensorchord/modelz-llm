@@ -45,6 +45,9 @@ class LLM:
             self.model = self.model.float()
         self.model.eval()
 
+    def __str__(self) -> str:
+        return f"LLM(model={self.model}, tokenizer={self.tokenizer})"
+
     def encode(self, text: str):
         tokens = self.tokenizer(text, return_tensors="pt")
         return tokens.input_ids
@@ -149,4 +152,4 @@ app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
 
 
 if __name__ == "__main__":
-    print(f"Init LLM model {MODEL} successfully")
+    print(llm)
