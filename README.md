@@ -31,6 +31,8 @@ To Be Added.
 
 ## Supported Models
 
-| Model Name | Model (`MODELZ_MODEL`) | Tokenizer (`MODELZ_TOKENIZER`) |
-| ---------- | ------------ | ---------------- |
-| ChatGLM 6B INT4    | THUDM/chatglm-6b-int4 | THUDM/chatglm-6b-int4 |
+| Model Name          | Model (`MODELZ_MODEL`)       | Tokenizer (`MODELZ_TOKENIZER`)              |
+| ------------------- | ---------------------------- | ------------------------------------------- |
+| ChatGLM 6B INT4     | THUDM/chatglm-6b-int4        | THUDM/chatglm-6b-int4                       |
+| MOSS Moon 003 SFT   | fnlp/moss-moon-003-sft       | fnlp/moss-moon-003-sft                      |
+| StableLM Alpha 7B   | stabilityai/stablelm-tuned-alpha-7b | stabilityai/stablelm-tuned-alpha-7b      |
