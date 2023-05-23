@@ -81,7 +81,7 @@ class ChatCompletions:
             chat_req = ChatCompletionRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
             resp.status = falcon.HTTP_422
-            resp.media = {"error": err}
+            resp.media = {"error": str(err)}
             return
 
         tokens = llm.encode(chat_req.get_prompt(self.model_name))
@@ -115,7 +115,7 @@ class Completions:
             prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
             resp.status = falcon.HTTP_422
-            resp.media = {"error": err}
+            resp.media = {"error": str(err)}
             return
 
         tokens = llm.encode(prompt_req.prompt)
