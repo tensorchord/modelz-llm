@@ -146,3 +146,7 @@ app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
 # make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
+
+
+if __name__ == "__main__":
+    print(f"Init LLM model {MODEL} successfully")
