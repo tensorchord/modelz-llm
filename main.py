@@ -28,13 +28,20 @@ MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
 formatter = "%(asctime)s - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
 logging.basicConfig(stream=sys.stdout, format=formatter, level=logging.INFO)
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from transformers.models.auto.auto_factory import _BaseAutoModelClass
+
 
 class LLM:
     def __init__(self, model_name: str, tokenizer_name: str) -> None:
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             tokenizer_name, trust_remote_code=True
         )
-        model_cls = getattr(transformers, LanguageModels.transformer_cls(model_name))
+        model_cls: "_BaseAutoModelClass" = getattr(
+            transformers, LanguageModels.transformer_cls(model_name)
+        )
         self.model = model_cls.from_pretrained(model_name, trust_remote_code=True)
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
@@ -42,7 +49,10 @@ class LLM:
         if torch.cuda.is_available():
             self.model = self.model.half().to(self.device)
         else:
-            self.model = self.model.float()
+            try:
+                self.model = self.model.float()
+            except:
+                pass
         self.model.eval()
 
     def __str__(self) -> str:
