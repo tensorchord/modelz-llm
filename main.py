@@ -1,6 +1,5 @@
 import logging
 import os
-import sys
 from datetime import datetime
 from typing import List
 
@@ -12,11 +11,13 @@ from llmspec import (
     ChatChoice,
     ChatCompletionRequest,
     ChatMessage,
+    CompletionChoice,
     CompletionResponse,
     PromptCompletionRequest,
     Role,
     TokenUsage,
     LanguageModels,
+    ErrorResponse,
 )
 import transformers
 
@@ -25,8 +26,14 @@ TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
 MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
 
 
-formatter = "%(asctime)s - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
-logging.basicConfig(stream=sys.stdout, format=formatter, level=logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter(
+    "%(asctime)s - %(process)d - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
+)
+sh = logging.StreamHandler()
+sh.setFormatter(formatter)
+logger.addHandler(sh)
 
 
 class LLM:
@@ -80,8 +87,10 @@ class ChatCompletions:
         try:
             chat_req = ChatCompletionRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
-            resp.status = falcon.HTTP_422
-            resp.media = {"error": str(err)}
+            logger.info(f"Failed to parse request: {err}")
+            # return 400 otherwise the client will retry
+            resp.status = falcon.HTTP_400
+            resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
         tokens = llm.encode(chat_req.get_prompt(self.model_name))
@@ -92,6 +101,7 @@ class ChatCompletions:
         completion = CompletionResponse(
             id=self.model_name,
             object="chat",
+            model=self.model_name,
             created=datetime.now(),
             choices=[
                 ChatChoice(message=ChatMessage(content=msg, role=Role.ASSISTANT)),
@@ -114,22 +124,24 @@ class Completions:
         try:
             prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
-            resp.status = falcon.HTTP_422
-            resp.media = {"error": str(err)}
+            logger.info(f"Failed to parse request: {err}")
+            # return 400 otherwise the client will retry
+            resp.status = falcon.HTTP_400
+            resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        tokens = llm.encode(prompt_req.prompt)
+        tokens = llm.encode(prompt_req.get_prompt())
         input_length = len(tokens[0])
         outputs = llm.generate(tokens=tokens)[0]
         msg = llm.decode(outputs)
         completion = CompletionResponse(
             id=self.model_name,
             object="chat",
+            model=self.model_name,
             created=datetime.now(),
             choices=[
-                ChatChoice(
-                    message=ChatMessage(content=msg, role=Role.ASSISTANT),
-                    finish_reason="length",
+                CompletionChoice(
+                    text=msg,
                 ),
             ],
             usage=TokenUsage(
