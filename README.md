@@ -33,7 +33,7 @@ import openai
 openai.api_base="http://localhost:8000"
 
 # create a chat completion
-chat_completion = openai.ChatCompletion.create(messages=[{"role": "user", "content": "Hello world"}])
+chat_completion = openai.ChatCompletion.create(model="any", messages=[{"role": "user", "content": "Hello world"}])
 ```
 
 ## Deploy with [Modelz](https://docs.modelz.ai)
