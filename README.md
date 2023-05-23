@@ -31,6 +31,7 @@ Then you can use the OpenAI python SDK to interact with the model:
 ```python
 import openai
 openai.api_base="http://localhost:8000"
+openai.api_key="any"
 
 # create a chat completion
 chat_completion = openai.ChatCompletion.create(model="any", messages=[{"role": "user", "content": "Hello world"}])
