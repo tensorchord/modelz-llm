@@ -20,8 +20,10 @@ from llmspec import (
     ErrorResponse,
     EmbeddingRequest,
     EmbeddingResponse,
-    EmbeddingData,
 )
+
+# todo: make this importable from top level
+from llmspec.llmspec import EmbeddingData
 import transformers
 from sentence_transformers import SentenceTransformer
 
