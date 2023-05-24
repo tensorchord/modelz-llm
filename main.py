@@ -22,8 +22,16 @@ from llmspec import (
     EmbeddingResponse,
 )
 
+
 # todo: make this importable from top level
-from llmspec.llmspec import EmbeddingData
+# from llmspec.llmspec import EmbeddingData
+# temporary fix: embedding attr type
+class EmbeddingData(msgspec.Struct):
+    embedding: List[float] | List[List[float]]
+    index: int
+    object: str = "embedding"
+
+
 import transformers
 from sentence_transformers import SentenceTransformer
 
@@ -179,16 +187,22 @@ class Embeddings:
 
         model = SentenceTransformer(self.model_name)
         embeddings = model.encode(embedding_req.input)
-        print(embeddings)
+        # convert embeddings of type list[Tensor] | ndarray to list[float]
+        if isinstance(embeddings, list):
+            embeddings = [e.tolist() for e in embeddings]
+        elif isinstance(embeddings, torch.Tensor):
+            embeddings = embeddings.tolist()
+        else:
+            embeddings = embeddings.tolist()
 
         embedding_data = EmbeddingData(embedding=embeddings, index=0)
         embedding_resp = EmbeddingResponse(
             data=embedding_data,
             model=self.model_name,
             usage=TokenUsage(
-                prompt_tokens=len(tokens[0]),
+                prompt_tokens=0,  # No prompt tokens, only embeddings generated.
                 completion_tokens=0,  # No completions performed, only embeddings generated.
-                total_tokens=len(tokens[0]),
+                total_tokens=len(embeddings),
             ),
         )
         # todo: llmspec hasn't implemented to_json for EmbeddingResponse
