@@ -58,7 +58,7 @@ RUN update-alternatives --install /usr/bin/python python ${ENVD_PREFIX}/python 1
     update-alternatives --install /usr/bin/pip pip ${ENVD_PREFIX}/pip 1 && \
     update-alternatives --install /usr/bin/pip3 pip3 ${ENVD_PREFIX}/pip3 1
 
-COPY ./images/llama/requirements.txt /
+COPY ./images/llama-7b/requirements.txt /
 
 RUN pip install -r requirements.txt
 
