@@ -181,7 +181,6 @@ class Embeddings:
         except msgspec.ValidationError as err:
             logger.info(f"Failed to parse request: {err}")
             resp.status = falcon.HTTP_400
-            resp.status = falcon.HTTP_400
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
