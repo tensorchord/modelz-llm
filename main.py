@@ -23,10 +23,10 @@ from llmspec import (
     EmbeddingData,
 )
 import transformers
+from sentence_transformers import SentenceTransformer
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
-# todo
-DEFAULT_EMBEDDING_MODEL = ""
+DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
 MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
 EMBEDDING_MODEL = os.environ.get("MODELZ_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
@@ -175,13 +175,9 @@ class Embeddings:
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        tokens = llm.encode(embedding_req.input)
-        with torch.no_grad():
-            outputs = llm.model(**tokens)
-            last_hidden_states = outputs.last_hidden_state
-            embeddings = torch.mean(
-                last_hidden_states, dim=1
-            ).tolist()  # get mean over sequence_length dimension
+        model = SentenceTransformer(self.model_name)
+        embeddings = model.encode(embedding_req.input)
+        print(embeddings)
 
         embedding_data = EmbeddingData(embedding=embeddings, index=0)
         embedding_resp = EmbeddingResponse(

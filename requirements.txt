@@ -9,3 +9,4 @@ accelerate
 llmspec
 falcon
 uvicorn
+sentence_transformers
