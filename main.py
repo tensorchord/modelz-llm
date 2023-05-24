@@ -18,6 +18,9 @@ from llmspec import (
     TokenUsage,
     LanguageModels,
     ErrorResponse,
+    EmbeddingRequest,
+    EmbeddingResponse,
+    EmbeddingData,
 )
 import transformers
 
@@ -163,25 +166,35 @@ class Embeddings:
     async def on_post(self, req: Request, resp: Response):
         buf = await req.stream.readall()
         try:
-            prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
+            # todo: llmspec hasn't implemented from_bytes for EmbeddingRequest
+            embedding_req = msgspec.json.decode(buf, type=EmbeddingRequest)
         except msgspec.ValidationError as err:
             logger.info(f"Failed to parse request: {err}")
-            # return 400 otherwise the client will retry
+            resp.status = falcon.HTTP_400
             resp.status = falcon.HTTP_400
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        tokens = llm.encode(prompt_req.prompt)
+        tokens = llm.encode(embedding_req.input)
         with torch.no_grad():
             outputs = llm.model(**tokens)
-            last_hidden_states = (
-                outputs.last_hidden_state
-            )  # shape: (batch_size, sequence_length, hidden_size)
+            last_hidden_states = outputs.last_hidden_state
             embeddings = torch.mean(
                 last_hidden_states, dim=1
             ).tolist()  # get mean over sequence_length dimension
 
-        resp.data = {"embeddings": embeddings}
+        embedding_data = EmbeddingData(embedding=embeddings, index=0)
+        embedding_resp = EmbeddingResponse(
+            data=embedding_data,
+            model=self.model_name,
+            usage=TokenUsage(
+                prompt_tokens=len(tokens[0]),
+                completion_tokens=0,  # No completions performed, only embeddings generated.
+                total_tokens=len(tokens[0]),
+            ),
+        )
+        # todo: llmspec hasn't implemented to_json for EmbeddingResponse
+        resp.data = msgspec.json.encode(embedding_resp)
 
 
 app = App()
@@ -189,11 +202,19 @@ app.add_route("/", Ping())
 app.add_route("/completions", Completions(model_name=MODEL))
 app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
+app.add_route(
+    "/engines/{}/embeddings".format(EMBEDDING_MODEL),
+    Embeddings(model_name=EMBEDDING_MODEL),
+)
 # refer to https://platform.openai.com/docs/api-reference/chat
 # make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/v1/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
+app.add_route(
+    "/v1/engines/{}/embeddings".format(EMBEDDING_MODEL),
+    Embeddings(model_name=EMBEDDING_MODEL),
+)
 
 
 if __name__ == "__main__":
