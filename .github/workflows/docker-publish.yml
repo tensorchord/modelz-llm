@@ -10,9 +10,6 @@ on:
     types: [created]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  pull_request:
-    paths:
-    - '.github/workflows/docker-publish.yml'
 
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }}
