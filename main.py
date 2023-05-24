@@ -20,16 +20,8 @@ from llmspec import (
     ErrorResponse,
     EmbeddingRequest,
     EmbeddingResponse,
+    EmbeddingData,
 )
-
-
-# todo: make this importable from top level
-# from llmspec.llmspec import EmbeddingData
-# temporary fix: embedding attr type
-class EmbeddingData(msgspec.Struct):
-    embedding: List[float] | List[List[float]]
-    index: int
-    object: str = "embedding"
 
 
 import transformers
@@ -172,20 +164,19 @@ class Completions:
 class Embeddings:
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
+        self.model = SentenceTransformer(self.model_name)
 
     async def on_post(self, req: Request, resp: Response):
         buf = await req.stream.readall()
         try:
-            # todo: llmspec hasn't implemented from_bytes for EmbeddingRequest
-            embedding_req = msgspec.json.decode(buf, type=EmbeddingRequest)
+            embedding_req = EmbeddingRequest.from_bytes(buf=buf)
         except msgspec.ValidationError as err:
             logger.info(f"Failed to parse request: {err}")
             resp.status = falcon.HTTP_400
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        model = SentenceTransformer(self.model_name)
-        embeddings = model.encode(embedding_req.input)
+        embeddings = self.model.encode(embedding_req.input)
         # convert embeddings of type list[Tensor] | ndarray to list[float]
         if isinstance(embeddings, list):
             embeddings = [e.tolist() for e in embeddings]
@@ -195,17 +186,18 @@ class Embeddings:
             embeddings = embeddings.tolist()
 
         embedding_data = EmbeddingData(embedding=embeddings, index=0)
+        # todo
+        token_count = 0
         embedding_resp = EmbeddingResponse(
             data=embedding_data,
             model=self.model_name,
             usage=TokenUsage(
-                prompt_tokens=0,  # No prompt tokens, only embeddings generated.
+                prompt_tokens=token_count,
                 completion_tokens=0,  # No completions performed, only embeddings generated.
-                total_tokens=len(embeddings),
+                total_tokens=token_count,
             ),
         )
-        # todo: llmspec hasn't implemented to_json for EmbeddingResponse
-        resp.data = msgspec.json.encode(embedding_resp)
+        resp.data = embedding_resp.to_json()
 
 
 class EmbeddingsEngineRouteWrapper(Embeddings):
@@ -216,23 +208,26 @@ class EmbeddingsEngineRouteWrapper(Embeddings):
         await super().on_post(req, resp)
 
 
+embeddings = Embeddings(EMBEDDING_MODEL)
+embeddings_engine_route_wrapper = EmbeddingsEngineRouteWrapper(EMBEDDING_MODEL)
+
 app = App()
 app.add_route("/", Ping())
 app.add_route("/completions", Completions(model_name=MODEL))
 app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
-app.add_route("/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
+app.add_route("/embeddings", embeddings)
 app.add_route(
     "/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    EmbeddingsEngineRouteWrapper(model_name=EMBEDDING_MODEL),
+    embeddings_engine_route_wrapper,
 )
 # refer to https://platform.openai.com/docs/api-reference/chat
 # make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
-app.add_route("/v1/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
+app.add_route("/v1/embeddings", embeddings)
 app.add_route(
     "/v1/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    EmbeddingsEngineRouteWrapper(model_name=EMBEDDING_MODEL),
+    embeddings_engine_route_wrapper,
 )
 
 
