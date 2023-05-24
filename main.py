@@ -22,8 +22,11 @@ from llmspec import (
 import transformers
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
+# todo
+DEFAULT_EMBEDDING_MODEL = ""
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
 MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
+EMBEDDING_MODEL = os.environ.get("MODELZ_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
 
 
 logger = logging.getLogger(__name__)
@@ -153,14 +156,44 @@ class Completions:
         resp.data = completion.to_json()
 
 
+class Embeddings:
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+
+    async def on_post(self, req: Request, resp: Response):
+        buf = await req.stream.readall()
+        try:
+            prompt_req = PromptCompletionRequest.from_bytes(buf=buf)
+        except msgspec.ValidationError as err:
+            logger.info(f"Failed to parse request: {err}")
+            # return 400 otherwise the client will retry
+            resp.status = falcon.HTTP_400
+            resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
+            return
+
+        tokens = llm.encode(prompt_req.prompt)
+        with torch.no_grad():
+            outputs = llm.model(**tokens)
+            last_hidden_states = (
+                outputs.last_hidden_state
+            )  # shape: (batch_size, sequence_length, hidden_size)
+            embeddings = torch.mean(
+                last_hidden_states, dim=1
+            ).tolist()  # get mean over sequence_length dimension
+
+        resp.data = {"embeddings": embeddings}
+
+
 app = App()
 app.add_route("/", Ping())
 app.add_route("/completions", Completions(model_name=MODEL))
 app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
+app.add_route("/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
 # refer to https://platform.openai.com/docs/api-reference/chat
 # make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
+app.add_route("/v1/embeddings", Embeddings(model_name=EMBEDDING_MODEL))
 
 
 if __name__ == "__main__":
