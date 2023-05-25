@@ -204,7 +204,7 @@ class Embeddings:
 
         return token_count, sentence_embeddings
 
-    async def on_post(self, req: Request, resp: Response):
+    async def on_post(self, req: Request, resp: Response, engine: str = ''):
         buf = await req.stream.readall()
         try:
             embedding_req = EmbeddingRequest.from_bytes(buf=buf)
@@ -236,16 +236,7 @@ class Embeddings:
         resp.data = embedding_resp.to_json()
 
 
-class EmbeddingsEngineRouteWrapper(Embeddings):
-    def __init__(self, model_name: str) -> None:
-        super().__init__(model_name)
-
-    async def on_post(self, req: Request, resp: Response, engine: str):
-        await super().on_post(req, resp)
-
-
 embeddings = Embeddings(EMBEDDING_MODEL)
-embeddings_engine_route_wrapper = EmbeddingsEngineRouteWrapper(EMBEDDING_MODEL)
 
 app = App()
 app.add_route("/", Ping())
@@ -254,7 +245,7 @@ app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/embeddings", embeddings)
 app.add_route(
     "/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    embeddings_engine_route_wrapper,
+    embeddings,
 )
 # refer to https://platform.openai.com/docs/api-reference/chat
 # make it fully compatible with the current OpenAI API endpoints
@@ -263,7 +254,7 @@ app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/v1/embeddings", embeddings)
 app.add_route(
     "/v1/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    embeddings_engine_route_wrapper,
+    embeddings,
 )
 
 
