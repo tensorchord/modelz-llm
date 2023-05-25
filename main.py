@@ -47,7 +47,10 @@ class LLM:
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
-        self.model = self.model.float()
+        if torch.cuda.is_available():
+            self.model = self.model.half().to(self.device)
+        else:
+            self.model = self.model.float()
         self.model.eval()
 
     def __str__(self) -> str:
