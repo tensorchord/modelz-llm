@@ -5,8 +5,8 @@ FROM ${base}
 ENV DEBIAN_FRONTEND=noninteractive LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-ENV MODELZ_MODEL=decapoda-research/llama-7b-hf
-ENV MODELZ_TOKENIZER=decapoda-research/llama-7b-hf
+ENV MODELZ_MODEL=lmsys/fastchat-t5-3b-v1.0
+ENV MODELZ_TOKENIZER=lmsys/fastchat-t5-3b-v1.0
 
 ARG MOSEC_PORT=8080
 ENV MOSEC_PORT=${MOSEC_PORT}
@@ -16,7 +16,6 @@ ARG CONDA_VERSION=py310_22.11.1-1
 RUN apt update && \
     apt install -y --no-install-recommends \
         wget \
-        git \
         build-essential \
         ca-certificates && \
     rm -rf /var/lib/apt/lists/*
@@ -68,9 +67,9 @@ COPY main.py workspace/
 
 WORKDIR /workspace
 
-# RUN python main.py --dry-run
+RUN python main.py --dry-run
 
-# # disable huggingface update check (could be very slow)
-# ENV HF_HUB_OFFLINE=true
+# disable huggingface update check (could be very slow)
+ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]

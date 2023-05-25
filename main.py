@@ -7,6 +7,7 @@ import falcon
 import msgspec
 import torch  # type: ignore
 import torch.nn.functional as F
+import transformers
 from falcon.asgi import App, Request, Response
 from llmspec import (
     ChatChoice,
@@ -14,19 +15,15 @@ from llmspec import (
     ChatMessage,
     CompletionChoice,
     CompletionResponse,
+    EmbeddingData,
+    EmbeddingRequest,
+    EmbeddingResponse,
+    ErrorResponse,
+    LanguageModels,
     PromptCompletionRequest,
     Role,
     TokenUsage,
-    LanguageModels,
-    ErrorResponse,
-    EmbeddingRequest,
-    EmbeddingResponse,
-    EmbeddingData,
 )
-
-
-import transformers
-from transformers import AutoTokenizer, AutoModel
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -35,7 +32,7 @@ MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
 EMBEDDING_MODEL = os.environ.get("MODELZ_EMBEDDING_MODEL", DEFAULT_EMBEDDING_MODEL)
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter(
     "%(asctime)s - %(process)d - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
@@ -165,8 +162,8 @@ class Completions:
 class Embeddings:
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
-        self.tokenizer = AutoTokenizer.from_pretrained(self.model)
-        self.model = AutoModel.from_pretrained(self.model)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.model)
+        self.model = transformers.AutoModel.from_pretrained(self.model)
 
     def embed_and_get_token_count(self, sentences):
         # Mean Pooling - Take attention mask into account for correct averaging
@@ -183,9 +180,9 @@ class Embeddings:
 
         # Tokenize sentences
         encoded_input = self.tokenizer(
-            sentences, padding=True, truncation=True, return_tensors='pt'
+            sentences, padding=True, truncation=True, return_tensors="pt"
         )
-        token_count = encoded_input['attention_mask'].sum(dim=1)
+        token_count = encoded_input["attention_mask"].sum(dim=1)
 
         # Compute token embeddings
         with torch.no_grad():
@@ -193,7 +190,7 @@ class Embeddings:
 
         # Perform pooling
         sentence_embeddings = mean_pooling(
-            model_output, encoded_input['attention_mask']
+            model_output, encoded_input["attention_mask"]
         )
 
         # Normalize embeddings
@@ -201,7 +198,7 @@ class Embeddings:
 
         return token_count, sentence_embeddings
 
-    async def on_post(self, req: Request, resp: Response, engine: str = ''):
+    async def on_post(self, req: Request, resp: Response, engine: str = ""):
         buf = await req.stream.readall()
         try:
             embedding_req = EmbeddingRequest.from_bytes(buf=buf)
@@ -226,7 +223,8 @@ class Embeddings:
             model=self.model_name,
             usage=TokenUsage(
                 prompt_tokens=token_count,
-                completion_tokens=0,  # No completions performed, only embeddings generated.
+                # No completions performed, only embeddings generated.
+                completion_tokens=0,
                 total_tokens=token_count,
             ),
         )
@@ -240,19 +238,13 @@ app.add_route("/", Ping())
 app.add_route("/completions", Completions(model_name=MODEL))
 app.add_route("/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/embeddings", embeddings)
-app.add_route(
-    "/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    embeddings,
-)
+app.add_route("/engines/{engine}/embeddings", embeddings)
 # refer to https://platform.openai.com/docs/api-reference/chat
 # make it fully compatible with the current OpenAI API endpoints
 app.add_route("/v1/completions", Completions(model_name=MODEL))
 app.add_route("/v1/chat/completions", ChatCompletions(model_name=MODEL))
 app.add_route("/v1/embeddings", embeddings)
-app.add_route(
-    "/v1/engines/{engine}/embeddings".format(EMBEDDING_MODEL),
-    embeddings,
-)
+app.add_route("/v1/engines/{engine}/embeddings", embeddings)
 
 
 if __name__ == "__main__":

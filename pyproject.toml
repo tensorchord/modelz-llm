@@ -1,0 +1,15 @@
+[project]
+name = "modelz-llm"
+dynamic = ["version"]
+description = "LLM unified service"
+authors = [{ name = "TensorChord", email = "modelz@tensorchord.ai" }]
+requires-python = ">=3.8"
+readme = "README.md"
+
+[tool.ruff]
+target-version = "py38"
+line-length = 88
+select = ["E", "F", "B", "I", "SIM", "TID", "PL"]
+
+[tool.black]
+line-length = 88
