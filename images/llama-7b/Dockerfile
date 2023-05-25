@@ -5,9 +5,6 @@ FROM ${base}
 ENV DEBIAN_FRONTEND=noninteractive LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-ENV MODELZ_MODEL=decapoda-research/llama-7b-hf
-ENV MODELZ_TOKENIZER=decapoda-research/llama-7b-hf
-
 ARG MOSEC_PORT=8080
 ENV MOSEC_PORT=${MOSEC_PORT}
 
@@ -64,13 +61,15 @@ RUN pip install -r requirements.txt
 
 RUN mkdir -p /workspace
 
-COPY main.py workspace/
+COPY . workspace/
+RUN pip install -e .
 
 WORKDIR /workspace
 
-# RUN python main.py --dry-run
+# RUN modelz-llm --dry-run --model decapoda-research/llama-7b-hf
 
 # # disable huggingface update check (could be very slow)
 # ENV HF_HUB_OFFLINE=true
 
-ENTRYPOINT [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]
+ENTRYPOINT [ "modelz-llm" ]
+CMD [ "--port", "8080", "--model", "decapoda-research/llama-7b-hf" ]

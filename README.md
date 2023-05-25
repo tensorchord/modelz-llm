@@ -20,13 +20,21 @@ Modelz LLM is an inference server that facilitates the utilization of open sourc
 
 ## Quick Start
 
+### Install
+
+```bash
+pip install modelz-llm
+# or install from source
+pip install git+https://github.com/tensorchord/modelz-llm.git
+```
+
 ### Run the self-hosted API server
 
 Please first start the self-hosted API server by following the instructions:
 
 ```bash
 export MODELZ_MODEL="THUDM/chatglm-6b-int4"
-uvicorn main:app
+modelz-llm -m MODELZ_MODEL
 ```
 
 Currently, we support the following models:

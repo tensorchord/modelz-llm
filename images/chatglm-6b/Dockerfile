@@ -5,9 +5,6 @@ FROM ${base}
 ENV DEBIAN_FRONTEND=noninteractive LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 ENV PATH /opt/conda/bin:$PATH
 
-ENV MODELZ_MODEL=THUDM/chatglm-6b
-ENV MODELZ_TOKENIZER=THUDM/chatglm-6b
-
 ARG MOSEC_PORT=8080
 ENV MOSEC_PORT=${MOSEC_PORT}
 
@@ -63,13 +60,15 @@ RUN pip install -r requirements.txt
 
 RUN mkdir -p /workspace
 
-COPY main.py workspace/
+COPY . workspace/
+RUN pip install -e .
 
 WORKDIR /workspace
 
-# RUN python main.py --dry-run
+# RUN modelz-llm --dry-run --model THUDM/chatglm-6b
 
 # # disable huggingface update check (could be very slow)
 # ENV HF_HUB_OFFLINE=true
 
-ENTRYPOINT [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]
+ENTRYPOINT [ "modelz-llm" ]
+CMD [ "--port", "8080", "--model", "THUDM/chatglm-6b" ]

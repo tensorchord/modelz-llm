@@ -128,3 +128,6 @@ dmypy.json
 # Pyre type checker
 .pyre/
 .demo/
+
+# generated file
+_version.py
