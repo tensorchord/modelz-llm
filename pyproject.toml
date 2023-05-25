@@ -17,13 +17,16 @@ dependencies = [
 ]
 [project.optional-dependencies]
 cpu = [
-    "torch --extra-index-url https://download.pytorch.org/whl/cpu",
+    # only include torch CPU for Linux x86_64
+    "torch @ https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp39-cp39-linux_x86_64.whl ; python_version == '3.9'",
+    "torch @ https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp310-cp310-linux_x86_64.whl ; python_version == '3.10'",
+    "torch @ https://download.pytorch.org/whl/cpu/torch-2.0.1%2Bcpu-cp311-cp311-linux_x86_64.whl ; python_version == '3.11'",
     "transformers",
     "sentencepiece",
     "accelerate",
 ]
 gpu = [
-    "torch --extra-index-url https://download.pytorch.org/whl/cu116",
+    "torch",  # CUDA 11.7, ref https://pytorch.org/get-started/locally/
     "transformers",
     "sentencepiece",
     "accelerate",
