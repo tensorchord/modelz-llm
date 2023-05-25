@@ -1,7 +1,7 @@
 import logging
 import os
 from datetime import datetime
-from typing import List
+from typing import List, Union
 
 import falcon
 import msgspec
@@ -25,7 +25,7 @@ from llmspec import (
     TokenUsage,
 )
 
-DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
+DEFAULT_MODEL = "bigscience/bloomz-560m"
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
 MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
@@ -166,15 +166,21 @@ class Completions:
 class Embeddings:
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(self.model)
-        self.model = transformers.AutoModel.from_pretrained(self.model)
+        self.tokenizer = transformers.AutoTokenizer.from_pretrained(model_name)
+        self.model = transformers.AutoModel.from_pretrained(model_name)
+        self.device = (
+            torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
+        )
+        if torch.cuda.is_available():
+            self.model = self.model.half().to(self.device)
+        self.model.eval()
 
-    def embed_and_get_token_count(self, sentences):
+    # copied from https://huggingface.co/sentence-transformers/all-MiniLM-L6-v2#usage-huggingface-transformers
+    def get_embedding_with_token_count(self, sentences: Union[str, List[str]]):
         # Mean Pooling - Take attention mask into account for correct averaging
         def mean_pooling(model_output, attention_mask):
-            token_embeddings = model_output[
-                0
-            ]  # First element of model_output contains all token embeddings
+            # First element of model_output contains all token embeddings
+            token_embeddings = model_output[0]
             input_mask_expanded = (
                 attention_mask.unsqueeze(-1).expand(token_embeddings.size()).float()
             )
@@ -186,16 +192,14 @@ class Embeddings:
         encoded_input = self.tokenizer(
             sentences, padding=True, truncation=True, return_tensors="pt"
         )
-        token_count = encoded_input["attention_mask"].sum(dim=1)
+        inputs = encoded_input.to(self.device)
+        token_count = inputs["attention_mask"].sum(dim=1).tolist()[0]
 
         # Compute token embeddings
-        with torch.no_grad():
-            model_output = self.model(**encoded_input)
+        model_output = self.model(**inputs)
 
         # Perform pooling
-        sentence_embeddings = mean_pooling(
-            model_output, encoded_input["attention_mask"]
-        )
+        sentence_embeddings = mean_pooling(model_output, inputs["attention_mask"])
 
         # Normalize embeddings
         sentence_embeddings = F.normalize(sentence_embeddings, p=2, dim=1)
@@ -203,6 +207,9 @@ class Embeddings:
         return token_count, sentence_embeddings
 
     async def on_post(self, req: Request, resp: Response, engine: str = ""):
+        if engine:
+            logger.info("received emb req with engine: %s", engine)
+
         buf = await req.stream.readall()
         try:
             embedding_req = EmbeddingRequest.from_bytes(buf=buf)
@@ -212,7 +219,9 @@ class Embeddings:
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        token_count, embeddings = self.embed_and_get_token_count(embedding_req.input)
+        token_count, embeddings = self.get_embedding_with_token_count(
+            embedding_req.input
+        )
         # convert embeddings of type list[Tensor] | ndarray to list[float]
         if isinstance(embeddings, list):
             embeddings = [e.tolist() for e in embeddings]

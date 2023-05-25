@@ -8,12 +8,7 @@ def basic(gpu=True):
         install.cuda(version="11.6.2")
         install.python_packages(requirements="requirements.txt")
     else:
-        install.python_packages(
-            name=[
-                "torch --extra-index-url https://download.pytorch.org/whl/cpu",
-                "transformers",
-            ]
-        )
+        install.python_packages(requirements="requirements-cpu.txt")
 
 
 def build():
