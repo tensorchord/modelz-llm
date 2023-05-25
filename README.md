@@ -26,9 +26,7 @@ Please first start the self-hosted API server by following the instructions:
 
 ```bash
 export MODELZ_MODEL="THUDM/chatglm-6b-int4"
-export MODELZ_TOKENIZER="THUDM/chatglm-6b-int4"
-
-python main.py
+uvicorn main:app
 ```
 
 Currently, we support the following models:
