@@ -52,7 +52,9 @@ class LLM:
             tokenizer_name, trust_remote_code=True
         )
         model_cls = getattr(transformers, LanguageModels.transformer_cls(model_name))
-        self.model = model_cls.from_pretrained(model_name, trust_remote_code=True)
+        self.model = model_cls.from_pretrained(
+            model_name, trust_remote_code=True, low_cpu_mem_usage=True
+        )
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
