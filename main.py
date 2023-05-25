@@ -165,9 +165,6 @@ class Completions:
 class Embeddings:
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
-        self.model = SentenceTransformer(self.model_name)
-
-        # Load model from HuggingFace Hub
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
         self.model = AutoModel.from_pretrained(self.model)
 
