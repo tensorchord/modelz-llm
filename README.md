@@ -33,17 +33,16 @@ python main.py
 
 Currently, we support the following models:
 
-| Model Name | Model (`MODELZ_MODEL`) | Tokenizer (`MODELZ_TOKENIZER`) |
-| ---------- | ------------ | ---------------- |
-| Vicuna 7B Delta V1.1    | `lmsys/vicuna-7b-delta-v1.1` | `lmsys/vicuna-7b-delta-v1.1` |
-| LLaMA 7B    | `decapoda-research/llama-7b-hf` | `decapoda-research/llama-7b-hf` |
-| ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | `THUDM/chatglm-6b-int4` |
-| ChatGLM 6B    | `THUDM/chatglm-6b` | `THUDM/chatglm-6b` |
+| Model Name | Model (`MODELZ_MODEL`) | Docker Image |
+| ---------- | ----------- | ---------------- |
+| Vicuna 7B Delta V1.1  | `lmsys/vicuna-7b-delta-v1.1` | [modelzai/llm-vicuna-7b](https://hub.docker.com/repository/docker/modelzai/llm-vicuna-7b/general) |
+| LLaMA 7B    | `decapoda-research/llama-7b-hf` | [modelzai/llm-llama-7b](https://hub.docker.com/repository/docker/modelzai/llm-llama-7b/general) |
+| ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | [modelzai/llm-chatglm-6b-int4](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b-int4/general) |
+| ChatGLM 6B  | `THUDM/chatglm-6b` | [modelzai/llm-chatglm-6b](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b/general) |
 
 <!-- | FastChat T5 3B V1.0  | `lmsys/fastchat-t5-3b-v1.0` | `lmsys/fastchat-t5-3b-v1.0` | -->
 
-
-You could set the `MODELZ_MODEL` and `MODELZ_TOKENIZER` environment variables to specify the model and tokenizer.
+You could set the `MODELZ_MODEL` environment variables to specify the model and tokenizer.
 
 ### Use OpenAI python SDK
 

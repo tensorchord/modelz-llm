@@ -38,11 +38,17 @@ logger.addHandler(sh)
 
 class LLM:
     def __init__(self, model_name: str, tokenizer_name: str) -> None:
+        # Use the same tokenizer as the model
+        if tokenizer_name is None:
+            tokenizer_name = model_name
+
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             tokenizer_name, trust_remote_code=True
         )
-        model_cls = getattr(transformers, LanguageModels.transformer_cls(model_name))
-        self.model = model_cls.from_pretrained(model_name, trust_remote_code=True)
+        model_cls = getattr(
+            transformers, LanguageModels.transformer_cls(model_name))
+        self.model = model_cls.from_pretrained(
+            model_name, trust_remote_code=True)
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
@@ -90,7 +96,8 @@ class ChatCompletions:
             logger.info(f"Failed to parse request: {err}")
             # return 400 otherwise the client will retry
             resp.status = falcon.HTTP_400
-            resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
+            resp.data = ErrorResponse.from_validation_err(
+                err, str(buf)).to_json()
             return
 
         tokens = llm.encode(chat_req.get_prompt(self.model_name))
@@ -104,7 +111,8 @@ class ChatCompletions:
             model=self.model_name,
             created=datetime.now(),
             choices=[
-                ChatChoice(message=ChatMessage(content=msg, role=Role.ASSISTANT)),
+                ChatChoice(message=ChatMessage(
+                    content=msg, role=Role.ASSISTANT)),
             ],
             usage=TokenUsage(
                 prompt_tokens=input_length,
@@ -127,7 +135,8 @@ class Completions:
             logger.info(f"Failed to parse request: {err}")
             # return 400 otherwise the client will retry
             resp.status = falcon.HTTP_400
-            resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
+            resp.data = ErrorResponse.from_validation_err(
+                err, str(buf)).to_json()
             return
 
         tokens = llm.encode(prompt_req.get_prompt())
