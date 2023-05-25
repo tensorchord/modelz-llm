@@ -3,8 +3,14 @@ from datetime import datetime
 from typing import Any, Dict, List
 
 import torch  # type: ignore
-from llmspec import (ChatChoice, ChatCompletionRequest, ChatMessage,
-                     CompletionResponse, Role, TokenUsage)
+from llmspec import (
+    ChatChoice,
+    ChatCompletionRequest,
+    ChatMessage,
+    CompletionResponse,
+    Role,
+    TokenUsage,
+)
 from mosec import Server, Worker, get_logger
 from transformers import AutoModel, AutoTokenizer
 

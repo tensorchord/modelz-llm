@@ -6,6 +6,7 @@ from typing import List
 import falcon
 import msgspec
 import torch  # type: ignore
+import transformers
 from falcon.asgi import App, Request, Response
 from llmspec import (
     ChatChoice,
@@ -13,21 +14,19 @@ from llmspec import (
     ChatMessage,
     CompletionChoice,
     CompletionResponse,
+    ErrorResponse,
+    LanguageModels,
     PromptCompletionRequest,
     Role,
     TokenUsage,
-    LanguageModels,
-    ErrorResponse,
 )
-import transformers
-from transformers.models.t5.configuration_t5 import T5Config
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
 MODEL = os.environ.get("MODELZ_MODEL", DEFAULT_MODEL)
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 formatter = logging.Formatter(
     "%(asctime)s - %(process)d - %(levelname)s - %(filename)s:%(lineno)s - %(message)s"
@@ -47,7 +46,10 @@ class LLM:
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
-        self.model = self.model.float()
+        if torch.cuda.is_available():
+            self.model = self.model.half().to(self.device)
+        else:
+            self.model = self.model.float()
         self.model.eval()
 
     def __str__(self) -> str:
