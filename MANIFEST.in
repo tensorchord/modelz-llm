@@ -1,0 +1,3 @@
+graft images
+include Makefile
+include build.envd
