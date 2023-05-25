@@ -37,6 +37,10 @@ Currently, we support the following models:
 | LLaMA 7B    | `decapoda-research/llama-7b-hf` | [modelzai/llm-llama-7b](https://hub.docker.com/repository/docker/modelzai/llm-llama-7b/general) |
 | ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | [modelzai/llm-chatglm-6b-int4](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b-int4/general) |
 | ChatGLM 6B  | `THUDM/chatglm-6b` | [modelzai/llm-chatglm-6b](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b/general) |
+| Bloomz 560M | `bigscience/bloomz-560m` | |
+| Bloomz 1.7B | `bigscience/bloomz-1b7` | |
+| Bloomz 3B | `bigscience/bloomz-3b` | |
+| Bloomz 7.1B | `bigscience/bloomz-7b1` | |
 
 <!-- | FastChat T5 3B V1.0  | `lmsys/fastchat-t5-3b-v1.0` | `lmsys/fastchat-t5-3b-v1.0` | -->
 

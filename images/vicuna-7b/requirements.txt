@@ -10,3 +10,4 @@ llmspec
 falcon
 uvicorn
 sentence_transformers
+protobuf==3.20.1
