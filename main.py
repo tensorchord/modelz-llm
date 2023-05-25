@@ -26,6 +26,7 @@ from llmspec import (
 
 
 import transformers
+from transformers import AutoTokenizer, AutoModel
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
 DEFAULT_EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -165,7 +166,6 @@ class Embeddings:
     def __init__(self, model_name: str) -> None:
         self.model_name = model_name
         self.model = SentenceTransformer(self.model_name)
-        from transformers import AutoTokenizer, AutoModel
 
         # Load model from HuggingFace Hub
         self.tokenizer = AutoTokenizer.from_pretrained(self.model)
