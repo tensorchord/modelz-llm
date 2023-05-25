@@ -20,6 +20,7 @@ from llmspec import (
     ErrorResponse,
 )
 import transformers
+from transformers.models.t5.configuration_t5 import T5Config
 
 DEFAULT_MODEL = "THUDM/chatglm-6b-int4"
 TOKENIZER = os.environ.get("MODELZ_TOKENIZER", DEFAULT_MODEL)
@@ -46,10 +47,7 @@ class LLM:
         self.device = (
             torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
         )
-        if torch.cuda.is_available():
-            self.model = self.model.half().to(self.device)
-        else:
-            self.model = self.model.float()
+        self.model = self.model.float()
         self.model.eval()
 
     def __str__(self) -> str:
