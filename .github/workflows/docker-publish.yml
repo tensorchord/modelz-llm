@@ -23,7 +23,7 @@ jobs:
     strategy:
       matrix:
         image:
-          - name: modelzai/llm-chatglm-6b
+          - name: modelzai/llm-chatglm-6b-int4
             dockerfile: ./images/base/Dockerfile
           - name: modelzai/llm-llama-7b
             dockerfile: ./images/llama-7b/Dockerfile
