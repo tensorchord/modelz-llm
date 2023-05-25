@@ -68,9 +68,9 @@ COPY main.py workspace/
 
 WORKDIR /workspace
 
-RUN python main.py --dry-run
+# RUN python main.py --dry-run
 
-# disable huggingface update check (could be very slow)
-ENV HF_HUB_OFFLINE=true
+# # disable huggingface update check (could be very slow)
+# ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "1" ]
