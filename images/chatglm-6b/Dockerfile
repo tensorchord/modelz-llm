@@ -65,7 +65,7 @@ RUN pip install -e .
 
 WORKDIR /workspace
 
-# RUN modelz-llm --dry-run
+# RUN modelz-llm --dry-run --model THUDM/chatglm-6b
 
 # # disable huggingface update check (could be very slow)
 # ENV HF_HUB_OFFLINE=true

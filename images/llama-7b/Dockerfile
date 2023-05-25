@@ -66,7 +66,7 @@ RUN pip install -e .
 
 WORKDIR /workspace
 
-# RUN modelz-llm --dry-run
+# RUN modelz-llm --dry-run --model decapoda-research/llama-7b-hf
 
 # # disable huggingface update check (could be very slow)
 # ENV HF_HUB_OFFLINE=true
