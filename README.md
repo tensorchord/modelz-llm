@@ -37,9 +37,11 @@ Currently, we support the following models:
 | ---------- | ------------ | ---------------- |
 | Vicuna 7B Delta V1.1    | `lmsys/vicuna-7b-delta-v1.1` | `lmsys/vicuna-7b-delta-v1.1` |
 | LLaMA 7B    | `decapoda-research/llama-7b-hf` | `decapoda-research/llama-7b-hf` |
-<!-- | FastChat T5 3B V1.0  | `lmsys/fastchat-t5-3b-v1.0` | `lmsys/fastchat-t5-3b-v1.0` | -->
 | ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | `THUDM/chatglm-6b-int4` |
 | ChatGLM 6B    | `THUDM/chatglm-6b` | `THUDM/chatglm-6b` |
+
+<!-- | FastChat T5 3B V1.0  | `lmsys/fastchat-t5-3b-v1.0` | `lmsys/fastchat-t5-3b-v1.0` | -->
+
 
 You could set the `MODELZ_MODEL` and `MODELZ_TOKENIZER` environment variables to specify the model and tokenizer.
 
