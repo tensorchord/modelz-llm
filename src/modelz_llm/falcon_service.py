@@ -1,6 +1,5 @@
 import argparse
 import logging
-import os
 from datetime import datetime
 from typing import List, Union
 
@@ -25,7 +24,6 @@ from llmspec import (
     Role,
     TokenUsage,
 )
-
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
