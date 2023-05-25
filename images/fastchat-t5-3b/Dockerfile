@@ -61,9 +61,8 @@ RUN pip install -r requirements.txt
 RUN mkdir -p /workspace
 
 COPY . workspace/
-RUN pip install -e .
-
 WORKDIR /workspace
+RUN pip install -e .
 
 RUN modelz-llm --dry-run --model lmsys/fastchat-t5-3b-v1.0
 

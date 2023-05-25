@@ -62,9 +62,8 @@ RUN pip install -r requirements.txt
 RUN mkdir -p /workspace
 
 COPY . workspace/
-RUN pip install -e .
-
 WORKDIR /workspace
+RUN pip install -e .
 
 # RUN modelz-llm --dry-run --model decapoda-research/llama-7b-hf
 
