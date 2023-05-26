@@ -62,7 +62,7 @@ RUN mkdir -p /workspace
 
 COPY . workspace/
 WORKDIR /workspace
-RUN pip install -e .
+RUN pip install -e .[cpu]
 
 # RUN modelz-llm --dry-run --model THUDM/chatglm-6b
 
