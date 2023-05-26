@@ -63,7 +63,7 @@ RUN mkdir -p /workspace
 
 COPY . workspace/
 WORKDIR /workspace
-RUN pip install -e .[cpu]
+RUN pip install -e .[gpu]
 
 # RUN modelz-llm --dry-run --model lmsys/vicuna-7b-delta-v1.1
 

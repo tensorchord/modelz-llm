@@ -62,7 +62,7 @@ RUN mkdir -p /workspace
 
 COPY . workspace/
 WORKDIR /workspace
-RUN pip install -e .[cpu]
+RUN pip install -e .[gpu]
 
 RUN modelz-llm --dry-run --model lmsys/fastchat-t5-3b-v1.0
 

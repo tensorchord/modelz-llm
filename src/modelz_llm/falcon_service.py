@@ -1,7 +1,7 @@
 import argparse
+import gc
 import logging
-from datetime import datetime
-from typing import List, Union
+from typing import Iterable, List, Union
 
 import falcon
 import msgspec
@@ -10,10 +10,8 @@ import torch.nn.functional as F
 import transformers
 from falcon.asgi import App, Request, Response
 from llmspec import (
-    ChatChoice,
     ChatCompletionRequest,
-    ChatMessage,
-    CompletionChoice,
+    ChatResponse,
     CompletionResponse,
     EmbeddingData,
     EmbeddingRequest,
@@ -23,6 +21,13 @@ from llmspec import (
     PromptCompletionRequest,
     Role,
     TokenUsage,
+)
+
+from modelz_llm.utils import (
+    MIN_TEMPERATURE,
+    MIN_TOP_P,
+    partial_stop,
+    prepare_logits_processor,
 )
 
 logger = logging.getLogger()
@@ -35,9 +40,13 @@ sh.setFormatter(formatter)
 logger.addHandler(sh)
 
 
+CONTEXT_LEN = 2048
+
+
 class LLM:
     def __init__(self, model_name: str, device: str) -> None:
         self.model_name = model_name
+        self.model_spec = LanguageModels.find(model_name).value
         self.tokenizer = transformers.AutoTokenizer.from_pretrained(
             model_name, trust_remote_code=True, low_cpu_mem_usage=True
         )
@@ -57,18 +66,189 @@ class LLM:
     def __str__(self) -> str:
         return f"LLM(model={self.model}, tokenizer={self.tokenizer})"
 
-    def encode(self, text: str):
+    def token_encode(self, text: str):
+        """Encode with tokenizer."""
         tokens = self.tokenizer(text, return_tensors="pt")
         return tokens.input_ids
 
-    def decode(self, token: List[int]):
+    def token_decode(self, token: List[int]):
+        """Decode with tokenizer."""
         text = self.tokenizer.decode(token, skip_special_tokens=True)
         return text
 
-    def generate(self, tokens, max_length=30):
+    def generate(self, tokens, **kwargs):
+        """Generate content with model."""
         inputs = tokens.to(self.device)
-        outputs = self.model.generate(inputs, max_length=max_length).tolist()
+        outputs = self.model.generate(inputs, **kwargs).tolist()
         return outputs
+
+    def step_generate(self, req: ChatCompletionRequest):
+        """Ref to FastChat.
+
+        https://github.com/lm-sys/FastChat/blob/8e38141ff5dd15f3138ccfd312dd73a471e986a1/fastchat/serve/inference.py#L58
+        """
+        prompt = req.get_prompt(self.model_name)
+        input_ids = self.token_encode(prompt)
+        input_length = len(input_ids[0])
+        logits_processor = prepare_logits_processor(
+            req.temperature,
+            req.repetition_penalty,
+            req.top_p,
+            req.top_k,
+        )
+
+        if not req.stop:
+            stop_token_ids = []
+        elif isinstance(req.stop, list):
+            stop_token_ids = req.stop
+        else:
+            stop_token_ids = self.token_encode(req.stop).tolist()[0]
+        stop_token_ids.append(self.tokenizer.eos_token_id)
+
+        output_ids = input_ids.tolist()[0]
+
+        # encoding
+        if self.model_spec.is_encoder_decoder:
+            max_src_len = CONTEXT_LEN
+            input_ids = input_ids[-max_src_len:]
+            encoder_output = self.model.encoder(
+                input_ids=torch.as_tensor([input_ids], device=self.device)
+            )[0]
+            start_ids = torch.as_tensor(
+                [[self.model.generation_config.decoder_start_token_id]],
+                dtype=torch.int64,
+                device=self.device,
+            )
+        else:
+            max_src_len = CONTEXT_LEN - req.max_tokens - 8
+
+        past_key_values = out = token = None
+        for i in range(req.max_tokens):
+            if i == 0:
+                if self.model_spec.is_encoder_decoder:
+                    out = self.model.decoder(
+                        input_ids=start_ids,
+                        encoder_hidden_states=encoder_output,
+                        use_cache=True,
+                    )
+                    logits = self.model.lm_head(out[0])
+                else:
+                    out = self.model(
+                        torch.as_tensor(input_ids, device=self.device), use_cache=True
+                    )
+                    logits = out.logits
+                past_key_values = out.past_key_values
+            else:
+                if self.model_spec.is_encoder_decoder:
+                    out = self.model.decoder(
+                        input_ids=torch.as_tensor([[token]], device=self.device),
+                        encoder_hidden_states=encoder_output,
+                        use_cache=True,
+                        past_key_values=past_key_values,
+                    )
+
+                    logits = self.model.lm_head(out[0])
+                else:
+                    out = self.model(
+                        input_ids=torch.as_tensor([[token]], device=self.device),
+                        use_cache=True,
+                        past_key_values=past_key_values,
+                    )
+                    logits = out.logits
+                past_key_values = out.past_key_values
+
+            if req.repetition_penalty > 1:
+                tmp_output_ids = torch.as_tensor([output_ids], device=logits.device)
+            else:
+                tmp_output_ids = None
+            last_token_logits = logits_processor(tmp_output_ids, logits[:, -1, :])[0]
+
+            if req.temperature < MIN_TEMPERATURE or req.top_p < MIN_TOP_P:  # greedy
+                token = int(torch.argmax(last_token_logits))
+            else:
+                probs = torch.softmax(last_token_logits, dim=-1)
+                token = int(torch.multinomial(probs, num_samples=1))
+
+            output_ids.append(token)
+            stopped = token in stop_token_ids
+
+            stream_interval = 1
+            echo = False
+            if i % stream_interval == 0 or i == req.max_tokens - 1 or stopped:
+                if echo:
+                    tmp_output_ids = output_ids
+                    rfind_start = input_length
+                else:
+                    tmp_output_ids = output_ids[input_length:]
+                    rfind_start = 0
+
+                output = self.tokenizer.decode(
+                    tmp_output_ids,
+                    skip_special_tokens=True,
+                    spaces_between_special_tokens=False,
+                )
+
+                partially_stopped = False
+                stop_str = "###"
+                if stop_str:
+                    if isinstance(stop_str, str):
+                        pos = output.rfind(stop_str, rfind_start)
+                        if pos != -1:
+                            output = output[:pos]
+                            stopped = True
+                        else:
+                            partially_stopped = partial_stop(output, stop_str)
+                    elif isinstance(stop_str, Iterable):
+                        for each_stop in stop_str:
+                            pos = output.rfind(each_stop, rfind_start)
+                            if pos != -1:
+                                output = output[:pos]
+                                stopped = True
+                                break
+                            else:
+                                partially_stopped = partial_stop(output, each_stop)
+                                if partially_stopped:
+                                    break
+                    else:
+                        raise ValueError("Invalid stop field type.")
+
+                # prevent yielding partial stop sequence
+                if not partially_stopped:
+                    pass
+                    # yield ChatResponse.from_message(
+                    #     output,
+                    #     Role.ASSISTANT,
+                    #     self.model_name,
+                    #     None,
+                    #     input_length,
+                    #     input_length + i,
+                    # )
+
+            if stopped:
+                break
+
+        # finish stream event, which contains finish reason
+        if i == req.max_tokens - 1:
+            finish_reason = "length"
+        elif stopped:
+            finish_reason = "stop"
+        else:
+            finish_reason = None
+
+        yield ChatResponse.from_message(
+            output,
+            Role.ASSISTANT,
+            self.model_name,
+            finish_reason,
+            input_length,
+            input_length + i,
+        )
+
+        # clean
+        del past_key_values, out
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 class Ping:
@@ -93,26 +273,19 @@ class ChatCompletions:
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        tokens = self.model.encode(chat_req.get_prompt(self.model_name))
-        input_length = len(tokens[0])
-        outputs = self.model.generate(tokens=tokens)[0]
-        res = outputs[input_length:]
-        msg = self.model.decode(res)
-        completion = CompletionResponse(
-            id=self.model_name,
-            object="chat",
-            model=self.model_name,
-            created=datetime.now(),
-            choices=[
-                ChatChoice(message=ChatMessage(content=msg, role=Role.ASSISTANT)),
-            ],
-            usage=TokenUsage(
-                prompt_tokens=input_length,
-                completion_tokens=len(res),
-                total_tokens=input_length + len(res),
-            ),
-        )
-        resp.data = completion.to_json()
+        for comp in self.model.step_generate(chat_req):
+            logger.info(comp)
+            resp.data = comp.to_json()
+
+        # tokens = self.model.token_encode(chat_req.get_prompt(self.model_name))
+        # input_length = len(tokens[0])
+        # outputs = self.model.generate(tokens=tokens)[0]
+        # res = outputs[input_length:]
+        # msg = self.model.token_decode(res)
+        # completion = ChatResponse.from_message(
+        #     msg, Role.ASSISTANT, self.model_name, None, input_length, len(res)
+        # )
+        # resp.data = completion.to_json()
 
 
 class Completions:
@@ -131,25 +304,12 @@ class Completions:
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        tokens = self.model.encode(prompt_req.get_prompt())
+        tokens = self.model.token_encode(prompt_req.get_prompt())
         input_length = len(tokens[0])
         outputs = self.model.generate(tokens=tokens)[0]
-        msg = self.model.decode(outputs)
-        completion = CompletionResponse(
-            id=self.model_name,
-            object="chat",
-            model=self.model_name,
-            created=datetime.now(),
-            choices=[
-                CompletionChoice(
-                    text=msg,
-                ),
-            ],
-            usage=TokenUsage(
-                prompt_tokens=input_length,
-                completion_tokens=len(outputs),
-                total_tokens=input_length + len(outputs),
-            ),
+        msg = self.model.token_decode(outputs)
+        completion = CompletionResponse.from_message(
+            msg, self.model_name, None, input_length, len(outputs)
         )
         resp.data = completion.to_json()
 
@@ -221,7 +381,7 @@ class Embeddings:
         else:
             embeddings = embeddings.tolist()
 
-        embedding_data = EmbeddingData(embedding=embeddings, index=0)
+        embedding_data = EmbeddingData(embedding=embeddings[0], index=0)
         embedding_resp = EmbeddingResponse(
             data=embedding_data,
             model=self.model_name,
