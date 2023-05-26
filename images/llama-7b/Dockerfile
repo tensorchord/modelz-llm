@@ -63,7 +63,7 @@ RUN mkdir -p /workspace
 
 COPY . workspace/
 WORKDIR /workspace
-RUN pip install -e .[cpu]
+RUN pip install -e .[gpu]
 
 # RUN modelz-llm --dry-run --model decapoda-research/llama-7b-hf
 
