@@ -1,4 +1,5 @@
 import argparse
+import base64
 import gc
 import logging
 from typing import Iterable, List, Union
@@ -373,17 +374,20 @@ class Embeddings:
         token_count, embeddings = self.get_embedding_with_token_count(
             embedding_req.input
         )
-        # convert embeddings of type list[Tensor] | ndarray to list[float]
-        if isinstance(embeddings, list):
-            embeddings = [e.tolist() for e in embeddings]
-        elif isinstance(embeddings, torch.Tensor):
-            embeddings = embeddings.tolist()
+        embeddings = embeddings.detach()
+        if self.device != "cpu":
+            embeddings = embeddings.cpu()
+        embeddings = embeddings.numpy()
+        if embedding_req.encoding_format == "base64":
+            embeddings = [base64.b64encode(emb.tobytes()) for emb in embeddings]
         else:
-            embeddings = embeddings.tolist()
+            embeddings = [emb.tolist() for emb in embeddings]
 
-        embedding_data = EmbeddingData(embedding=embeddings[0], index=0)
         embedding_resp = EmbeddingResponse(
-            data=embedding_data,
+            data=[
+                EmbeddingData(embedding=emb, index=i)
+                for i, emb in enumerate(embeddings)
+            ],
             model=self.model_name,
             usage=TokenUsage(
                 prompt_tokens=token_count,
