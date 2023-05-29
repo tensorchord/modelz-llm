@@ -6,6 +6,7 @@ from typing import Iterable, List, Union
 
 import falcon
 import msgspec
+import numpy as np
 import torch  # type: ignore
 import torch.nn.functional as F
 import transformers
@@ -379,7 +380,10 @@ class Embeddings:
             embeddings = embeddings.cpu()
         embeddings = embeddings.numpy()
         if embedding_req.encoding_format == "base64":
-            embeddings = [base64.b64encode(emb.tobytes()) for emb in embeddings]
+            embeddings = [
+                base64.b64encode(emb.astype(np.float32).tobytes()).decode("utf-8")
+                for emb in embeddings
+            ]
         else:
             embeddings = [emb.tolist() for emb in embeddings]
 
