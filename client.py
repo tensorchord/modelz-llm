@@ -16,3 +16,10 @@ chat_completion = openai.ChatCompletion.create(
     max_tokens=100,
 )
 print(chat_completion)
+
+emb = openai.Embedding.create(
+    input=["Once upon a time", "There was a frog", "Who lived in a well"],
+    model="text-embedding-ada-002",
+    encoding_format="json",
+)
+print(emb)
