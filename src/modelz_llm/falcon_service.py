@@ -112,7 +112,7 @@ class LLM:
             max_src_len = CONTEXT_LEN
             input_ids = input_ids[-max_src_len:]
             encoder_output = self.model.encoder(
-                input_ids=torch.as_tensor([input_ids], device=self.device)
+                input_ids=torch.as_tensor(input_ids, device=self.device)
             )[0]
             start_ids = torch.as_tensor(
                 [[self.model.generation_config.decoder_start_token_id]],
