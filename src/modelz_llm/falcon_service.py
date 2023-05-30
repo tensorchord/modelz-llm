@@ -1,10 +1,12 @@
 import argparse
+import base64
 import gc
 import logging
 from typing import Iterable, List, Union
 
 import falcon
 import msgspec
+import numpy as np
 import torch  # type: ignore
 import torch.nn.functional as F
 import transformers
@@ -112,7 +114,7 @@ class LLM:
             max_src_len = CONTEXT_LEN
             input_ids = input_ids[-max_src_len:]
             encoder_output = self.model.encoder(
-                input_ids=torch.as_tensor([input_ids], device=self.device)
+                input_ids=torch.as_tensor(input_ids, device=self.device)
             )[0]
             start_ids = torch.as_tensor(
                 [[self.model.generation_config.decoder_start_token_id]],
@@ -373,17 +375,23 @@ class Embeddings:
         token_count, embeddings = self.get_embedding_with_token_count(
             embedding_req.input
         )
-        # convert embeddings of type list[Tensor] | ndarray to list[float]
-        if isinstance(embeddings, list):
-            embeddings = [e.tolist() for e in embeddings]
-        elif isinstance(embeddings, torch.Tensor):
-            embeddings = embeddings.tolist()
+        embeddings = embeddings.detach()
+        if self.device != "cpu":
+            embeddings = embeddings.cpu()
+        embeddings = embeddings.numpy()
+        if embedding_req.encoding_format == "base64":
+            embeddings = [
+                base64.b64encode(emb.astype(np.float32).tobytes()).decode("utf-8")
+                for emb in embeddings
+            ]
         else:
-            embeddings = embeddings.tolist()
+            embeddings = [emb.tolist() for emb in embeddings]
 
-        embedding_data = EmbeddingData(embedding=embeddings[0], index=0)
         embedding_resp = EmbeddingResponse(
-            data=embedding_data,
+            data=[
+                EmbeddingData(embedding=emb, index=i)
+                for i, emb in enumerate(embeddings)
+            ],
             model=self.model_name,
             usage=TokenUsage(
                 prompt_tokens=token_count,
