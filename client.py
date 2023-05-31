@@ -30,4 +30,4 @@ def embedding():
 
 if __name__ == "__main__":
     chat()
-    # embedding()
+    embedding()
