@@ -222,7 +222,7 @@ class LLM:
                     #     self.model_name,
                     #     None,
                     #     input_length,
-                    #     input_length + i,
+                    #     i,
                     # )
 
             if stopped:
@@ -242,7 +242,7 @@ class LLM:
             self.model_name,
             finish_reason,
             input_length,
-            input_length + i,
+            i,
         )
 
         # clean
