@@ -49,10 +49,11 @@ class LLM:
     def __init__(self, model_name: str, device: str) -> None:
         self.model_name = model_name
         self.model_spec = LanguageModels.find(model_name).value
-        self.tokenizer = transformers.AutoTokenizer.from_pretrained(
+        tokenizer_cls = getattr(transformers, self.model_spec.tokenizer_cls)
+        self.tokenizer = tokenizer_cls.from_pretrained(
             model_name, trust_remote_code=True, low_cpu_mem_usage=True
         )
-        model_cls = getattr(transformers, LanguageModels.transformer_cls(model_name))
+        model_cls = getattr(transformers, self.model_spec.transformer_model_cls)
         self.model = model_cls.from_pretrained(
             model_name, trust_remote_code=True, low_cpu_mem_usage=True
         )
@@ -84,7 +85,7 @@ class LLM:
         outputs = self.model.generate(inputs, **kwargs).tolist()
         return outputs
 
-    def step_generate(self, req: ChatCompletionRequest):
+    def step_generate(self, req: ChatCompletionRequest, echo=False, stream_interval=1):
         """Ref to FastChat.
 
         https://github.com/lm-sys/FastChat/blob/8e38141ff5dd15f3138ccfd312dd73a471e986a1/fastchat/serve/inference.py#L58
@@ -106,6 +107,7 @@ class LLM:
         else:
             stop_token_ids = self.token_encode(req.stop).tolist()[0]
         stop_token_ids.append(self.tokenizer.eos_token_id)
+        stop_token = req.stop or self.tokenizer.eos_token
 
         output_ids = input_ids.tolist()[0]
 
@@ -174,8 +176,6 @@ class LLM:
             output_ids.append(token)
             stopped = token in stop_token_ids
 
-            stream_interval = 1
-            echo = False
             if i % stream_interval == 0 or i == req.max_tokens - 1 or stopped:
                 if echo:
                     tmp_output_ids = output_ids
@@ -191,17 +191,16 @@ class LLM:
                 )
 
                 partially_stopped = False
-                stop_str = "###"
-                if stop_str:
-                    if isinstance(stop_str, str):
-                        pos = output.rfind(stop_str, rfind_start)
+                if stop_token:
+                    if isinstance(stop_token, str):
+                        pos = output.rfind(stop_token, rfind_start)
                         if pos != -1:
                             output = output[:pos]
                             stopped = True
                         else:
-                            partially_stopped = partial_stop(output, stop_str)
-                    elif isinstance(stop_str, Iterable):
-                        for each_stop in stop_str:
+                            partially_stopped = partial_stop(output, stop_token)
+                    elif isinstance(stop_token, Iterable):
+                        for each_stop in stop_token:
                             pos = output.rfind(each_stop, rfind_start)
                             if pos != -1:
                                 output = output[:pos]
@@ -223,7 +222,7 @@ class LLM:
                     #     self.model_name,
                     #     None,
                     #     input_length,
-                    #     input_length + i,
+                    #     i,
                     # )
 
             if stopped:
@@ -243,7 +242,7 @@ class LLM:
             self.model_name,
             finish_reason,
             input_length,
-            input_length + i,
+            i,
         )
 
         # clean
