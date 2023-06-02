@@ -65,10 +65,10 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-RUN modelz-llm --dry-run --model lmsys/vicuna-7b-delta-v1.1
+# RUN modelz-llm --dry-run --model lmsys/vicuna-7b-delta-v1.1
 
-# disable huggingface update check (could be very slow)
-ENV HF_HUB_OFFLINE=true
+# # disable huggingface update check (could be very slow)
+# ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
 CMD [ "--port", "8080", "--model", "lmsys/vicuna-7b-delta-v1.1" ]
