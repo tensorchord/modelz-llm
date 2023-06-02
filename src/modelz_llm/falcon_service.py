@@ -46,25 +46,33 @@ CONTEXT_LEN = 2048
 
 
 class LLM:
-    def __init__(self, model_name: str, device: str) -> None:
+    def __init__(self, model_name: str, device: str, dry_run: bool) -> None:
         self.model_name = model_name
         self.model_spec = LanguageModels.find(model_name).value
         tokenizer_cls = getattr(transformers, self.model_spec.tokenizer_cls)
-        self.tokenizer = tokenizer_cls.from_pretrained(
-            model_name, trust_remote_code=True, low_cpu_mem_usage=True
-        )
         model_cls = getattr(transformers, self.model_spec.transformer_model_cls)
-        self.model = model_cls.from_pretrained(
-            model_name, trust_remote_code=True, low_cpu_mem_usage=True
-        )
         if device == "auto":
+            self.model = model_cls.from_pretrained(
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto"
+            )
+            self.tokenizer = tokenizer_cls.from_pretrained(
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto"
+            )
             self.device = (
                 torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
             )
         else:
+            self.model = model_cls.from_pretrained(
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True
+            )
+            self.tokenizer = tokenizer_cls.from_pretrained(
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True
+            )
             self.device = device
-        self.model = self.model.to(self.device)
-        self.model.eval()
+        
+        if not dry_run:
+            self.model = self.model.to(self.device)
+            self.model.eval()
 
     def __str__(self) -> str:
         return f"LLM(model={self.model}, tokenizer={self.tokenizer})"
@@ -403,7 +411,7 @@ class Embeddings:
 
 
 def build_falcon_app(args: argparse.Namespace):
-    llm = LLM(args.model, args.device)
+    llm = LLM(args.model, args.device, args.dry_run)
     embeddings = Embeddings(args.emb_model, args.device)
     completion = Completions(llm)
     chat_completion = ChatCompletions(llm)
