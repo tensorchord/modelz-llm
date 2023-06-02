@@ -29,8 +29,8 @@ jobs:
             dockerfile: ./images/chatglm-6b/Dockerfile
           - name: modelzai/llm-llama-7b
             dockerfile: ./images/llama-7b/Dockerfile
-          # - name: modelzai/llm-fastchat-t5-3b
-          #   dockerfile: ./images/fastchat-t5-3b/Dockerfile
+          - name: modelzai/llm-fastchat-t5-3b
+            dockerfile: ./images/fastchat-t5-3b/Dockerfile
           - name: modelzai/llm-vicuna-7b
             dockerfile: ./images/vicuna-7b/Dockerfile
     runs-on: ubuntu-latest

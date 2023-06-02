@@ -40,6 +40,7 @@ Currently, we support the following models:
 
 | Model Name | Huggingface Model | Docker Image |
 | ---------- | ----------- | ---------------- |
+|FastChat T5 | `lmsys/fastchat-t5-3b-v1.0` | [modelzai/llm-fastchat-t5-3b](https://hub.docker.com/repository/docker/modelzai/llm-fastchat-t5-3b/general)
 | Vicuna 7B Delta V1.1  | `lmsys/vicuna-7b-delta-v1.1` | [modelzai/llm-vicuna-7b](https://hub.docker.com/repository/docker/modelzai/llm-vicuna-7b/general) |
 | LLaMA 7B    | `decapoda-research/llama-7b-hf` | [modelzai/llm-llama-7b](https://hub.docker.com/repository/docker/modelzai/llm-llama-7b/general) |
 | ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | [modelzai/llm-chatglm-6b-int4](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b-int4/general) |
@@ -48,8 +49,6 @@ Currently, we support the following models:
 | Bloomz 1.7B | `bigscience/bloomz-1b7` | |
 | Bloomz 3B | `bigscience/bloomz-3b` | |
 | Bloomz 7.1B | `bigscience/bloomz-7b1` | |
-
-<!-- | FastChat T5 3B V1.0  | `lmsys/fastchat-t5-3b-v1.0` | `lmsys/fastchat-t5-3b-v1.0` | -->
 
 ### Use OpenAI python SDK
 
@@ -62,4 +61,18 @@ openai.api_key="any"
 
 # create a chat completion
 chat_completion = openai.ChatCompletion.create(model="any", messages=[{"role": "user", "content": "Hello world"}])
+```
+
+## Supported APIs
+
+```py
+    app.add_route("/", Ping())
+    app.add_route("/completions", completion)
+    app.add_route("/chat/completions", chat_completion)
+    app.add_route("/embeddings", embeddings)
+    app.add_route("/engines/{engine}/embeddings", embeddings)
+    app.add_route("/v1/completions", completion)
+    app.add_route("/v1/chat/completions", chat_completion)
+    app.add_route("/v1/embeddings", embeddings)
+    app.add_route("/v1/engines/{engine}/embeddings", embeddings)
 ```
