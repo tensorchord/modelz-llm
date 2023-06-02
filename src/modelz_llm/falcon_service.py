@@ -53,10 +53,10 @@ class LLM:
         model_cls = getattr(transformers, self.model_spec.transformer_model_cls)
         if device == "auto":
             self.model = model_cls.from_pretrained(
-                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto"
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto", offload_folder="/tmp/model-offload"
             )
             self.tokenizer = tokenizer_cls.from_pretrained(
-                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto"
+                model_name, trust_remote_code=True, low_cpu_mem_usage=True, device_map="auto", offload_folder="/tmp/tokenizer-offload"
             )
             self.device = (
                 torch.cuda.current_device() if torch.cuda.is_available() else "cpu"
