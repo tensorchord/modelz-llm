@@ -50,7 +50,6 @@ jobs:
           remove-dotnet: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-          remove-docker-images: 'true'
           remove-android: 'true'
 
       - name: Docker Login
