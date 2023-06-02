@@ -51,12 +51,17 @@ class LLM:
         self.model_name = model_name
         self.model_spec = LanguageModels.find(model_name).value
         tokenizer_cls = getattr(transformers, self.model_spec.tokenizer_cls)
+
         self.tokenizer = tokenizer_cls.from_pretrained(
-            model_name, trust_remote_code=True, low_cpu_mem_usage=True
+            model_name,
+            trust_remote_code=True,
+            low_cpu_mem_usage=self.model_spec.low_cpu_mem_usage,
         )
         model_cls = getattr(transformers, self.model_spec.transformer_model_cls)
         self.model = model_cls.from_pretrained(
-            model_name, trust_remote_code=True, low_cpu_mem_usage=True
+            model_name,
+            trust_remote_code=True,
+            low_cpu_mem_usage=self.model_spec.low_cpu_mem_usage,
         )
         if device == "auto":
             self.device = (
