@@ -65,10 +65,10 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-# RUN modelz-llm --dry-run --model THUDM/chatglm-6b
+RUN modelz-llm --dry-run --model THUDM/chatglm-6b
 
-# # disable huggingface update check (could be very slow)
-# ENV HF_HUB_OFFLINE=true
+# disable huggingface update check (could be very slow)
+ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
 CMD [ "--port", "8080", "--model", "THUDM/chatglm-6b" ]

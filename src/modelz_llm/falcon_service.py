@@ -407,7 +407,7 @@ def build_falcon_app(args: argparse.Namespace):
     if args.dry_run:
         snapshot_download(repo_id=args.model)
         return
-    llm = LLM(args.model, args.device, args.dry_run)
+    llm = LLM(args.model, args.device)
     embeddings = Embeddings(args.emb_model, args.device)
     completion = Completions(llm)
     chat_completion = ChatCompletions(llm)
