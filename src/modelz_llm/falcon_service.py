@@ -69,6 +69,15 @@ class LLM:
             )
         else:
             self.device = device
+
+        try:
+            if self.device == "cpu":
+                self.model = self.model.float()
+            else:
+                self.model = self.model.half()
+        except Exception as err:
+            logger.debug("failed to convert the model: %s", err)
+
         self.model = self.model.to(self.device)
         self.model.eval()
 
@@ -90,6 +99,24 @@ class LLM:
         inputs = tokens.to(self.device)
         outputs = self.model.generate(inputs, **kwargs).tolist()
         return outputs
+
+    def chat_completion(self, req: ChatCompletionRequest) -> ChatResponse:
+        """Generate ChatCompletionResponse for ChatCompletionRequest."""
+        if self.model_spec is not LanguageModels.CHAT_GLM.value:
+            return list(self.step_generate(req))[0]
+
+        tokens = self.token_encode(req.get_prompt(self.model_name))
+        input_length = len(tokens[0])
+        outputs = self.generate(tokens, **req.get_inference_args(self.model_name))[0]
+        message = self.token_decode(outputs[input_length:])
+        return ChatResponse.from_message(
+            message=message,
+            role=Role.ASSISTANT,
+            model=self.model_name,
+            finish_reason=None,
+            prompt_token=input_length,
+            completion_token=len(outputs) - input_length,
+        )
 
     def step_generate(self, req: ChatCompletionRequest, echo=False, stream_interval=1):
         """Ref to FastChat.
@@ -222,14 +249,6 @@ class LLM:
                 # prevent yielding partial stop sequence
                 if not partially_stopped:
                     pass
-                    # yield ChatResponse.from_message(
-                    #     output,
-                    #     Role.ASSISTANT,
-                    #     self.model_name,
-                    #     None,
-                    #     input_length,
-                    #     i,
-                    # )
 
             if stopped:
                 break
@@ -280,19 +299,9 @@ class ChatCompletions:
             resp.data = ErrorResponse.from_validation_err(err, str(buf)).to_json()
             return
 
-        for comp in self.model.step_generate(chat_req):
-            logger.info(comp)
-            resp.data = comp.to_json()
-
-        # tokens = self.model.token_encode(chat_req.get_prompt(self.model_name))
-        # input_length = len(tokens[0])
-        # outputs = self.model.generate(tokens=tokens)[0]
-        # res = outputs[input_length:]
-        # msg = self.model.token_decode(res)
-        # completion = ChatResponse.from_message(
-        #     msg, Role.ASSISTANT, self.model_name, None, input_length, len(res)
-        # )
-        # resp.data = completion.to_json()
+        comp = self.model.chat_completion(chat_req)
+        logger.debug(comp)
+        resp.data = comp.to_json()
 
 
 class Completions:
