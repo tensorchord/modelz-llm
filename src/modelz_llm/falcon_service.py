@@ -144,8 +144,11 @@ class LLM:
 
         output_ids = input_ids.tolist()[0]
 
+        is_encoder_decoder = getattr(self.model, "encoder", None) and getattr(
+            self.model, "decoder", None
+        )
         # encoding
-        if self.model_spec.is_encoder_decoder:
+        if is_encoder_decoder:
             max_src_len = CONTEXT_LEN
             input_ids = input_ids[-max_src_len:]
             encoder_output = self.model.encoder(
@@ -162,7 +165,7 @@ class LLM:
         past_key_values = out = token = None
         for i in range(req.max_tokens):
             if i == 0:
-                if self.model_spec.is_encoder_decoder:
+                if is_encoder_decoder:
                     out = self.model.decoder(
                         input_ids=start_ids,
                         encoder_hidden_states=encoder_output,
@@ -176,7 +179,7 @@ class LLM:
                     logits = out.logits
                 past_key_values = out.past_key_values
             else:
-                if self.model_spec.is_encoder_decoder:
+                if is_encoder_decoder:
                     out = self.model.decoder(
                         input_ids=torch.as_tensor([[token]], device=self.device),
                         encoder_hidden_states=encoder_output,
