@@ -8,4 +8,4 @@ accelerate
 llmspec
 falcon
 uvicorn
-protobuf
+protobuf==3.20.*
