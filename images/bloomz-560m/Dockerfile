@@ -65,7 +65,7 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-RUN modelz-llm --dry-run
+RUN modelz-llm --dry-run --model bigscience/bloomz-560m
 
 # disable huggingface update check (could be very slow)
 ENV HF_HUB_OFFLINE=true

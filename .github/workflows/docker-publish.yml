@@ -24,7 +24,9 @@ jobs:
       matrix:
         image:
           - name: modelzai/llm-chatglm-6b-int4
-            dockerfile: ./images/base/Dockerfile
+            dockerfile: ./images/chatglm-6b-int4/Dockerfile
+          - name: modelzai/llm-bloomz-560m
+            dockerfile: ./images/bloomz-560m/Dockerfile
           - name: modelzai/llm-chatglm-6b
             dockerfile: ./images/chatglm-6b/Dockerfile
           - name: modelzai/llm-llama-7b
