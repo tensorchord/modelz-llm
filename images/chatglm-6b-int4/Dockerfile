@@ -71,4 +71,4 @@ RUN modelz-llm --dry-run --model THUDM/chatglm-6b-int4
 ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
-CMD [ "--port", "8080" ]
+CMD [ "--port", "8080", "--model", "THUDM/chatglm-6b-int4" ]
