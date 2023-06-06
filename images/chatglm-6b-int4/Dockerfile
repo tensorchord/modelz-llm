@@ -55,7 +55,7 @@ RUN update-alternatives --install /usr/bin/python python ${ENVD_PREFIX}/python 1
     update-alternatives --install /usr/bin/pip pip ${ENVD_PREFIX}/pip 1 && \
     update-alternatives --install /usr/bin/pip3 pip3 ${ENVD_PREFIX}/pip3 1
 
-COPY /requirements.txt /
+COPY requirements.txt /
 
 RUN pip install -r requirements.txt
 
@@ -65,10 +65,10 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-# RUN modelz-llm --dry-run --model lmsys/fastchat-t5-3b-v1.0
+RUN modelz-llm --dry-run --model THUDM/chatglm-6b-int4
 
-# # disable huggingface update check (could be very slow)
-# ENV HF_HUB_OFFLINE=true
+# disable huggingface update check (could be very slow)
+ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
-CMD [ "--port", "8080", "--model", "lmsys/fastchat-t5-3b-v1.0" ]
+CMD [ "--port", "8080" ]
