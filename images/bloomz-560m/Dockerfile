@@ -71,4 +71,4 @@ RUN modelz-llm --dry-run --model bigscience/bloomz-560m
 ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
-CMD [ "--port", "8080" ]
+CMD [ "--port", "8080", "--model", "bigscience/bloomz-560m" ]
