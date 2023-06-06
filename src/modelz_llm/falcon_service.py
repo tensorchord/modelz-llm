@@ -423,6 +423,7 @@ class Embeddings:
 def build_falcon_app(args: argparse.Namespace):
     if args.dry_run:
         snapshot_download(repo_id=args.model)
+        snapshot_download(repo_id=args.emb_model)
         return
     llm = LLM(args.model, args.device)
     embeddings = Embeddings(args.emb_model, args.device)
