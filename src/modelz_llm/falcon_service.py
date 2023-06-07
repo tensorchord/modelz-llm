@@ -303,7 +303,7 @@ class ChatCompletions:
             return
 
         comp = self.model.chat_completion(chat_req)
-        logger.debug(comp)
+        logger.info(comp)
         resp.data = comp.to_json()
 
 

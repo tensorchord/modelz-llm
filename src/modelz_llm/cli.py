@@ -64,4 +64,10 @@ def main():
         print("Dry run, exiting...")
         return
 
-    uvicorn.run(app, host="0.0.0.0", port=args.port, workers=args.worker)
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=args.port,
+        workers=args.worker,
+        access_log=False,
+    )
