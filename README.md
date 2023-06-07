@@ -23,7 +23,7 @@ Modelz LLM is an inference server that facilitates the utilization of open sourc
 ### Install
 
 ```bash
-pip install modelz-llm[gpu]
+pip install modelz-llm
 # or install from source
 pip install git+https://github.com/tensorchord/modelz-llm.git[gpu]
 ```
@@ -33,22 +33,22 @@ pip install git+https://github.com/tensorchord/modelz-llm.git[gpu]
 Please first start the self-hosted API server by following the instructions:
 
 ```bash
-modelz-llm -m THUDM/chatglm-6b-int4
+modelz-llm -m bigscience/bloomz-560m --device cpu
 ```
 
 Currently, we support the following models:
 
-| Model Name | Huggingface Model | Docker Image |
-| ---------- | ----------- | ---------------- |
-|FastChat T5 | `lmsys/fastchat-t5-3b-v1.0` | [modelzai/llm-fastchat-t5-3b](https://hub.docker.com/repository/docker/modelzai/llm-fastchat-t5-3b/general)
-| Vicuna 7B Delta V1.1  | `lmsys/vicuna-7b-delta-v1.1` | [modelzai/llm-vicuna-7b](https://hub.docker.com/repository/docker/modelzai/llm-vicuna-7b/general) |
-| LLaMA 7B    | `decapoda-research/llama-7b-hf` | [modelzai/llm-llama-7b](https://hub.docker.com/repository/docker/modelzai/llm-llama-7b/general) |
-| ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | [modelzai/llm-chatglm-6b-int4](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b-int4/general) |
-| ChatGLM 6B  | `THUDM/chatglm-6b` | [modelzai/llm-chatglm-6b](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b/general) |
-| Bloomz 560M | `bigscience/bloomz-560m` | [modelzai/llm-bloomz-560m](https://hub.docker.com/repository/docker/modelzai/llm-bloomz-560m/general) |
-| Bloomz 1.7B | `bigscience/bloomz-1b7` | |
-| Bloomz 3B | `bigscience/bloomz-3b` | |
-| Bloomz 7.1B | `bigscience/bloomz-7b1` | |
+| Model Name | Huggingface Model | Docker Image | Recommended GPU
+| ---------- | ----------- | ---------------- | -- |
+| FastChat T5 | `lmsys/fastchat-t5-3b-v1.0` | [modelzai/llm-fastchat-t5-3b](https://hub.docker.com/repository/docker/modelzai/llm-fastchat-t5-3b/general) | Nvidia L4(24GB) |
+| Vicuna 7B Delta V1.1  | `lmsys/vicuna-7b-delta-v1.1` | [modelzai/llm-vicuna-7b](https://hub.docker.com/repository/docker/modelzai/llm-vicuna-7b/general) | Nvidia A100(40GB) |
+| LLaMA 7B    | `decapoda-research/llama-7b-hf` | [modelzai/llm-llama-7b](https://hub.docker.com/repository/docker/modelzai/llm-llama-7b/general) | Nvidia A100(40GB) |
+| ChatGLM 6B INT4    | `THUDM/chatglm-6b-int4` | [modelzai/llm-chatglm-6b-int4](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b-int4/general) | Nvidia T4(16GB) |
+| ChatGLM 6B  | `THUDM/chatglm-6b` | [modelzai/llm-chatglm-6b](https://hub.docker.com/repository/docker/modelzai/llm-chatglm-6b/general) | Nvidia L4(24GB) |
+| Bloomz 560M | `bigscience/bloomz-560m` | [modelzai/llm-bloomz-560m](https://hub.docker.com/repository/docker/modelzai/llm-bloomz-560m/general) | CPU |
+| Bloomz 1.7B | `bigscience/bloomz-1b7` | | CPU |
+| Bloomz 3B | `bigscience/bloomz-3b` |  | Nvidia L4(24GB) |
+| Bloomz 7.1B | `bigscience/bloomz-7b1` | | Nvidia A100(40GB) |
 
 ### Use OpenAI python SDK
 
@@ -87,6 +87,8 @@ You could also deploy the modelz-llm directly on [Modelz](https://docs.modelz.ai
 
 ## Supported APIs
 
+Modelz LLM supports the following APIs for interacting with open source large language models:
+
 - `/completions`
 - `/chat/completions`
 - `/embeddings`
@@ -94,3 +96,8 @@ You could also deploy the modelz-llm directly on [Modelz](https://docs.modelz.ai
 - `/v1/completions`
 - `/v1/chat/completions`
 - `/v1/embeddings`
+
+## Acknowledgements
+
+- [FastChat](https://github.com/lm-sys/FastChat) for the prompt generation logic.
+- [Mosec](https://github.com/mosecorg/mosec) for the inference engine.
