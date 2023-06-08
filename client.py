@@ -1,6 +1,6 @@
 import openai
 
-openai.api_base = "http://localhost:8000/"
+openai.api_base = "http://localhost:8000"
 openai.api_key = "test"
 openai.debug = True
 
