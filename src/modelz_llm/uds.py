@@ -48,7 +48,7 @@ class Server:
                         except Exception as err:
                             logger.warning(err)
                             resp = err
-                        data = pickle.dumps(resp)
+                        data = pickle.dumps(resp, protocol=pickle.HIGHEST_PROTOCOL)
                         conn.sendall(struct.pack("!I", len(data)))
                         conn.sendall(data)
 
@@ -64,7 +64,7 @@ class Client:
         if self.reader is None or self.writer is None:
             self.reader, self.writer = await asyncio.open_unix_connection(self.path)
 
-        data = pickle.dumps(req)
+        data = pickle.dumps(req, protocol=pickle.HIGHEST_PROTOCOL)
         self.writer.write(struct.pack("!I", len(data)))
         self.writer.write(data)
         await self.writer.drain()
