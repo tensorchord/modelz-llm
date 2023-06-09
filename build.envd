@@ -14,13 +14,15 @@ def basic(gpu=True):
 def build():
     base(dev=True)
     basic()
-    runtime.expose(envd_port=8000, host_port=8000, service="service")
+    shell("zsh")
+    runtime.expose(envd_port=8800, host_port=8800, service="service")
 
 
 def cpu():
     base(dev=True)
     basic(gpu=False)
-    runtime.expose(envd_port=8000, host_port=8000, service="service")
+    shell("zsh")
+    runtime.expose(envd_port=8800, host_port=8800, service="service")
 
 
 def serving():
