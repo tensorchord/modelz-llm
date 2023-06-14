@@ -1,5 +1,6 @@
 import argparse
 import multiprocessing as mp
+import time
 
 import falcon
 import msgspec
@@ -114,11 +115,17 @@ def build_falcon_app(args: argparse.Namespace):
     llm_uds_path = UNIX_DOMAIN_SOCKET_PATH.format("llm")
     emb_uds_path = UNIX_DOMAIN_SOCKET_PATH.format("emb")
     barrier = mp.get_context("spawn").Barrier(3)
-    run_server(llm_uds_path, barrier, LLM, model_name=args.model, device=args.device)
-    run_server(
+    model_proc = run_server(
+        llm_uds_path, barrier, LLM, model_name=args.model, device=args.device
+    )
+    emb_proc = run_server(
         emb_uds_path, barrier, Emb, model_name=args.emb_model, device=args.device
     )
     barrier.wait()
+    # wait to detect the proc exitcode
+    time.sleep(1)
+    if any(proc.exitcode is not None for proc in [model_proc, emb_proc]):
+        raise RuntimeError("failed to start the service")
 
     llm_client = Client(llm_uds_path)
     completion = Completions(llm_client)

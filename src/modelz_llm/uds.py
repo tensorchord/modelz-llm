@@ -23,8 +23,10 @@ class Server:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if self.path.exists():
             self.path.unlink()
-        self.func = cls(**kwargs)
-        barrier.wait()
+        try:
+            self.func = cls(**kwargs)
+        finally:
+            barrier.wait()
         self.run()
 
     def run(self):
