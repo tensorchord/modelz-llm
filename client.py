@@ -1,3 +1,5 @@
+import argparse
+
 import openai
 
 openai.api_base = "http://localhost:8000"
@@ -29,5 +31,12 @@ def embedding():
 
 
 if __name__ == "__main__":
-    chat()
-    embedding()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--chat", action="store_true")
+    parser.add_argument("-e", "--embedding", action="store_true")
+    args = parser.parse_args()
+
+    if args.chat:
+        chat()
+    if args.embedding:
+        embedding()
