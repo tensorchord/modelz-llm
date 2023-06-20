@@ -1,7 +1,7 @@
 import argparse
+import json
 import multiprocessing as mp
 import time
-import json
 
 import falcon
 import msgspec
@@ -121,7 +121,7 @@ class Moderation:
                         "sexual": "false",
                         "sexual/minors": "false",
                         "violence": "false",
-                        "violence/graphic": "false"
+                        "violence/graphic": "false",
                     },
                     "category_scores": {
                         "hate": 0,
@@ -130,13 +130,14 @@ class Moderation:
                         "sexual": 0,
                         "sexual/minors": 0,
                         "violence": 0,
-                        "violence/graphic": 0
+                        "violence/graphic": 0,
                     },
-                    "flagged": "false"
+                    "flagged": "false",
                 }
-            ]
+            ],
         }
         resp.text = json.dumps(result)
+
 
 def build_falcon_app(args: argparse.Namespace):
     if args.dry_run:
