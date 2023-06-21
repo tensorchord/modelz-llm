@@ -16,7 +16,7 @@ Modelz LLM is an inference server that facilitates the utilization of open sourc
 - **OpenAI compatible API**: Modelz LLM provides an OpenAI compatible API for LLMs, which means you can use the OpenAI python SDK or LangChain to interact with the model.
 - **Self-hosted**: Modelz LLM can be easily deployed on either local or cloud-based environments.
 - **Open source LLMs**: Modelz LLM supports open source LLMs, such as FastChat, LLaMA, and ChatGLM.
-- **Cloud native**: We provide docker images for different LLMs, which can be easily deployed on Kubernetes, or other cloud-based environments (e.g. [Modelz](https://docs.modelz.ai))
+- **Cloud native**: We provide docker images for different LLMs, which can be easily deployed on Kubernetes, or other cloud-based environments (e.g. [Modelz](https://modelz.ai))
 
 ## Quick Start
 
