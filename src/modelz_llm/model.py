@@ -6,9 +6,9 @@ import transformers
 from llmspec import (
     ChatCompletionRequest,
     ChatResponse,
+    CompletionResponse,
     LanguageModels,
     PromptCompletionRequest,
-    Role,
 )
 
 from modelz_llm.log import logger
@@ -91,26 +91,36 @@ class LLM:
         return req.get_prompt()
 
     def __call__(
-        self, req: Union[ChatCompletionRequest, PromptCompletionRequest]
-    ) -> ChatResponse:
-        """Generate ChatCompletionResponse for ChatCompletionRequest."""
+        self, req: Union[ChatResponse, CompletionResponse]
+    ) -> Union[ChatResponse, ChatCompletionRequest]:
+        """Generate chat or completion response."""
+        resp_cls = (
+            ChatResponse
+            if isinstance(req, ChatCompletionRequest)
+            else CompletionResponse
+        )
         if self.model_spec is not LanguageModels.CHAT_GLM.value:
-            return list(self.step_generate(req))[0]
+            return list(self.step_generate(req, resp_cls=resp_cls))[0]
 
         tokens = self.token_encode(self.get_prompt_from_req(req))
         input_length = len(tokens[0])
         outputs = self.generate(tokens, **req.get_inference_args(self.model_name))[0]
         message = self.token_decode(outputs[input_length:])
-        return ChatResponse.from_message(
+        return resp_cls.from_message(
             message=message,
-            role=Role.ASSISTANT,
             model=self.model_name,
             finish_reason=None,
             prompt_token=input_length,
             completion_token=len(outputs) - input_length,
         )
 
-    def step_generate(self, req: ChatCompletionRequest, echo=False, stream_interval=1):
+    def step_generate(
+        self,
+        req: ChatCompletionRequest,
+        resp_cls: Union[ChatResponse, CompletionResponse],
+        echo=False,
+        stream_interval=1,
+    ):
         """Ref to FastChat.
 
         https://github.com/lm-sys/FastChat/blob/8e38141ff5dd15f3138ccfd312dd73a471e986a1/fastchat/serve/inference.py#L58
@@ -256,13 +266,12 @@ class LLM:
         else:
             finish_reason = None
 
-        yield ChatResponse.from_message(
-            output,
-            Role.ASSISTANT,
-            self.model_name,
-            finish_reason,
-            input_length,
-            i,
+        yield resp_cls.from_message(
+            message=output,
+            model=self.model_name,
+            finish_reason=finish_reason,
+            prompt_token=input_length,
+            completion_token=i,
         )
 
         # clean
