@@ -96,6 +96,8 @@ Modelz LLM supports the following APIs for interacting with open source large la
 - `/v1/completions`
 - `/v1/chat/completions`
 - `/v1/embeddings`
+- `/moderations` (fake)
+- `/v1/moderations` (fake)
 
 ## Acknowledgements
 
