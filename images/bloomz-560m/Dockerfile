@@ -1,9 +1,8 @@
-ARG base=nvidia/cuda:11.6.2-cudnn8-runtime-ubuntu20.04
+ARG base=ubuntu:20.04
 
 FROM ${base}
 
 ENV DEBIAN_FRONTEND=noninteractive LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
-ENV PATH /opt/conda/bin:$PATH
 
 ARG MOSEC_PORT=8080
 ENV MOSEC_PORT=${MOSEC_PORT}
@@ -46,9 +45,7 @@ RUN set -x && \
     find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
     /opt/conda/bin/conda clean -afy
 
-RUN conda create -n envd python=3.9
-
-ENV ENVD_PREFIX=/opt/conda/envs/envd/bin
+ENV ENVD_PREFIX=/opt/conda/bin
 
 RUN update-alternatives --install /usr/bin/python python ${ENVD_PREFIX}/python 1 && \
     update-alternatives --install /usr/bin/python3 python3 ${ENVD_PREFIX}/python3 1 && \
@@ -63,7 +60,7 @@ RUN mkdir -p /workspace
 
 COPY . workspace/
 WORKDIR /workspace
-RUN pip install -e .[gpu]
+RUN pip install -e .
 
 RUN modelz-llm --dry-run --model bigscience/bloomz-560m
 

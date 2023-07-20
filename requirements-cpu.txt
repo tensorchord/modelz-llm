@@ -5,3 +5,5 @@ transformers
 llmspec
 falcon
 uvicorn
+sentencepiece
+accelerate
