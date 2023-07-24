@@ -35,7 +35,7 @@ jobs:
             dockerfile: ./images/fastchat-t5-3b/Dockerfile
           - name: modelzai/llm-vicuna-7b
             dockerfile: ./images/vicuna-7b/Dockerfile
-          - name: meta-llama/Llama-2-7b-hf
+          - name: modelzai/llama-2-7b-hf
             dockerfile: ./images/llama-2-7b/Dockerfile
     runs-on: ubuntu-latest
     permissions:
