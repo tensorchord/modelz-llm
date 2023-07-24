@@ -46,9 +46,7 @@ RUN set -x && \
     find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
     /opt/conda/bin/conda clean -afy
 
-RUN conda create -n envd python=3.9
-
-ENV ENVD_PREFIX=/opt/conda/envs/envd/bin
+ENV ENVD_PREFIX=/opt/conda/bin
 
 RUN update-alternatives --install /usr/bin/python python ${ENVD_PREFIX}/python 1 && \
     update-alternatives --install /usr/bin/python3 python3 ${ENVD_PREFIX}/python3 1 && \
@@ -65,10 +63,10 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-RUN modelz-llm --dry-run --model THUDM/chatglm-6b-int4
+# RUN modelz-llm --dry-run --model THUDM/chatglm-6b-int4
 
 # disable huggingface update check (could be very slow)
-ENV HF_HUB_OFFLINE=true
+# ENV HF_HUB_OFFLINE=true
 
 ENTRYPOINT [ "modelz-llm" ]
 CMD [ "--port", "8080", "--model", "THUDM/chatglm-6b-int4" ]

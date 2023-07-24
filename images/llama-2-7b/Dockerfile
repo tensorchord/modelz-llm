@@ -63,7 +63,7 @@ COPY . workspace/
 WORKDIR /workspace
 RUN pip install -e .[gpu]
 
-# RUN modelz-llm --dry-run --model decapoda-research/llama-7b-hf
+# RUN modelz-llm --dry-run --model meta-llama/Llama-2-7b-hf
 
 # # disable huggingface update check (could be very slow)
 # ENV HF_HUB_OFFLINE=true
