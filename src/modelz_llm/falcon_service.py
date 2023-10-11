@@ -1,4 +1,5 @@
 import argparse
+import json
 import multiprocessing as mp
 import time
 
@@ -106,6 +107,38 @@ class Embeddings:
         resp.data = emb.to_json()
 
 
+class Moderation:
+    async def on_post(self, req: Request, resp: Response):
+        result = {
+            "id": "modr-XXXXX",
+            "model": "text-moderation-001",
+            "results": [
+                {
+                    "categories": {
+                        "hate": "false",
+                        "hate/threatening": "false",
+                        "self-harm": "false",
+                        "sexual": "false",
+                        "sexual/minors": "false",
+                        "violence": "false",
+                        "violence/graphic": "false",
+                    },
+                    "category_scores": {
+                        "hate": 0,
+                        "hate/threatening": 0,
+                        "self-harm": 0,
+                        "sexual": 0,
+                        "sexual/minors": 0,
+                        "violence": 0,
+                        "violence/graphic": 0,
+                    },
+                    "flagged": "false",
+                }
+            ],
+        }
+        resp.text = json.dumps(result)
+
+
 def build_falcon_app(args: argparse.Namespace):
     if args.dry_run:
         snapshot_download(repo_id=args.model)
@@ -132,6 +165,7 @@ def build_falcon_app(args: argparse.Namespace):
     chat_completion = ChatCompletions(llm_client)
     emb_client = Client(emb_uds_path)
     embeddings = Embeddings(emb_client)
+    moderation = Moderation()
 
     app = App()
     app.add_route("/", Ping())
@@ -146,4 +180,7 @@ def build_falcon_app(args: argparse.Namespace):
     app.add_route("/v1/chat/completions", chat_completion)
     app.add_route("/v1/embeddings", embeddings)
     app.add_route("/v1/engines/{engine}/embeddings", embeddings)
+
+    app.add_route("/v1/moderations", moderation)
+    app.add_route("/moderations", moderation)
     return app
